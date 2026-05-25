@@ -110,7 +110,7 @@ docs/项目讲解.md
 - Create: `apps/agent/tests/test_health.py`
 - Modify: root `package.json`
 
-- [ ] **Step 1: Create Python project metadata**
+- [x] **Step 1: Create Python project metadata**
 
 Create `apps/agent/pyproject.toml` with:
 
@@ -144,7 +144,7 @@ line-length = 100
 target-version = "py311"
 ```
 
-- [ ] **Step 2: Add Python config**
+- [x] **Step 2: Add Python config**
 
 Create `apps/agent/src/agent_app/config.py`:
 
@@ -163,7 +163,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-- [ ] **Step 3: Add initial schemas**
+- [x] **Step 3: Add initial schemas**
 
 Create `apps/agent/src/agent_app/schemas.py`:
 
@@ -183,7 +183,7 @@ class TraceItem(BaseModel):
     payload: dict = Field(default_factory=dict)
 ```
 
-- [ ] **Step 4: Add FastAPI app**
+- [x] **Step 4: Add FastAPI app**
 
 Create `apps/agent/src/agent_app/main.py`:
 
@@ -201,7 +201,7 @@ def health() -> HealthResponse:
     return HealthResponse(model_mode=settings.model_mode)
 ```
 
-- [ ] **Step 5: Add health test**
+- [x] **Step 5: Add health test**
 
 Create `apps/agent/tests/test_health.py`:
 
@@ -219,7 +219,7 @@ def test_health_returns_service_name():
     assert resp.json()["service"] == "tiktop-agent"
 ```
 
-- [ ] **Step 6: Add root scripts**
+- [x] **Step 6: Add root scripts**
 
 Modify root `package.json` scripts:
 
@@ -231,7 +231,7 @@ Modify root `package.json` scripts:
 
 Do not add `dev:agent` into `pnpm dev` yet; keep Python startup explicit until integration is verified.
 
-- [ ] **Step 7: Verify Python skeleton**
+- [x] **Step 7: Verify Python skeleton**
 
 Run:
 
@@ -261,7 +261,7 @@ git commit -m "feat(agent): add python agent service skeleton"
 - Modify: `apps/agent/src/agent_app/main.py`
 - Test: `apps/agent/tests/test_material_agent.py`
 
-- [ ] **Step 1: Add material schemas**
+- [x] **Step 1: Add material schemas**
 
 Extend `schemas.py`:
 
@@ -301,7 +301,7 @@ class MaterialSearchResponse(BaseModel):
     trace: list[TraceItem]
 ```
 
-- [ ] **Step 2: Write material agent tests**
+- [x] **Step 2: Write material agent tests**
 
 Create `tests/test_material_agent.py`:
 
@@ -350,7 +350,7 @@ def test_search_materials_ranks_related_material_first():
     assert result.results[0].material_id == "m1"
 ```
 
-- [ ] **Step 3: Implement deterministic mock embedding**
+- [x] **Step 3: Implement deterministic mock embedding**
 
 Create `agents/material_agent.py`:
 
@@ -434,7 +434,7 @@ def search_materials(req: MaterialSearchRequest) -> MaterialSearchResponse:
     )
 ```
 
-- [ ] **Step 4: Expose endpoints**
+- [x] **Step 4: Expose endpoints**
 
 Modify `main.py`:
 
@@ -459,7 +459,7 @@ def material_search(req: MaterialSearchRequest) -> MaterialSearchResponse:
     return search_materials(req)
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 

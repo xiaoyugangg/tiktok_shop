@@ -11,3 +11,38 @@ class TraceItem(BaseModel):
     stage: str
     message: str
     payload: dict = Field(default_factory=dict)
+
+
+class MaterialAnalyzeRequest(BaseModel):
+    material_id: str
+    filename: str
+    mime: str
+    kind: str
+    product_title: str | None = None
+    selling_points: list[str] = Field(default_factory=list)
+
+
+class MaterialAnalyzeResponse(BaseModel):
+    material_id: str
+    summary: str
+    tags: list[str]
+    embedding_text: str
+    embedding_vector: list[float]
+    trace: list[TraceItem]
+
+
+class MaterialSearchRequest(BaseModel):
+    query: str
+    materials: list[MaterialAnalyzeResponse]
+    limit: int = 5
+
+
+class MaterialSearchResult(BaseModel):
+    material_id: str
+    score: float
+    reason: str
+
+
+class MaterialSearchResponse(BaseModel):
+    results: list[MaterialSearchResult]
+    trace: list[TraceItem]
