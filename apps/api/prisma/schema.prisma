@@ -8,15 +8,20 @@ datasource db {
 }
 
 model Material {
-  id         String   @id @default(cuid())
-  kind       String
-  filename   String
-  path       String
-  mime       String
-  size       Int
-  productId  String?
-  product    Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  createdAt  DateTime @default(now())
+  id                  String   @id @default(cuid())
+  kind                String
+  filename            String
+  path                String
+  mime                String
+  size                Int
+  summary             String?
+  tagsJson            String?
+  embeddingText       String?
+  embeddingVectorJson String?
+  analyzedAt          DateTime?
+  productId           String?
+  product             Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  createdAt           DateTime @default(now())
 
   @@index([productId])
 }
@@ -63,18 +68,51 @@ model VideoTask {
 }
 
 model Shot {
-  id            String    @id @default(cuid())
-  taskId        String
-  task          VideoTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  idx           Int
-  description   String
-  cameraMotion  String
-  durationSec   Float
-  imagePath     String?
-  clipPath      String?
-  status        String
-  errorMsg      String?
+  id               String    @id @default(cuid())
+  taskId           String
+  task             VideoTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  idx              Int
+  description      String
+  cameraMotion     String
+  durationSec      Float
+  prompt           String?
+  subtitle         String?
+  bgmHint          String?
+  sourceMaterialId String?
+  retryCount       Int       @default(0)
+  imagePath        String?
+  clipPath         String?
+  status           String
+  errorMsg         String?
 
   @@index([taskId])
   @@unique([taskId, idx])
+}
+
+model TaskTrace {
+  id          String   @id @default(cuid())
+  taskId      String
+  shotId      String?
+  stage       String
+  level       String
+  message     String
+  payloadJson String?
+  createdAt   DateTime @default(now())
+
+  @@index([taskId])
+  @@index([shotId])
+}
+
+model MockMetric {
+  id             String   @id @default(cuid())
+  productId      String?
+  taskId         String?
+  factor         String
+  ctr            Float
+  cvr            Float
+  completionRate Float
+  createdAt      DateTime @default(now())
+
+  @@index([productId])
+  @@index([taskId])
 }

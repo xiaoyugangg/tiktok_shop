@@ -48,6 +48,54 @@ Why LangGraph, not plain LangChain:
 - LangChain agents are useful for broad tool-calling conversations, but the video pipeline is a deterministic long-running workflow where we want predictable stages, testable node functions, and trace names that can be shown in the UI.
 - Coding agent SDKs such as Codex/Claude Code/opencode are better suited to development-time code tasks, not merchant-facing runtime video generation. The product runtime Agent will use LangGraph; coding agents can still be mentioned as development assistance, not as the production request path.
 
+## Deferred Agent Backlog From Source Requirements
+
+The first integration pass should only make P0 aware of the Python Agent: health check, material analysis proxy, and editing plan proxy. The source task, however, asks for a broader Agent-capable system. Keep the following items as selectable follow-up work after the current P0/P1 integration is stable.
+
+### P1 follow-up candidates
+
+- [ ] Persist Python material analysis results into Node/Prisma instead of returning them only from the Python service.
+- [ ] Add multi-granularity material structure: product-level tags, video-level summary/Embedding, and slice-level features.
+- [ ] Add material search UI and Node API for keyword, tag, and vector-similarity retrieval.
+- [ ] Consume the Python editing plan inside the real creation pipeline so generated shots use Agent-rewritten prompts, subtitles, BGM hints, durations, and selected source materials.
+- [ ] Add shot-level editing: modify prompt/subtitle/BGM/duration/source material, then regenerate a single shot and restitch.
+- [ ] Add subtitle/TTS/BGM postprocessing after stitching, with true TTS optional and mock/provider abstraction acceptable for demo reliability.
+- [ ] Add failure retry Agent: classify generation errors, patch prompt/duration when useful, enforce retry limits, and record the decision.
+- [ ] Persist Agent trace records and show them in the frontend task detail page.
+- [ ] Add a mock analytics dashboard for "generation factors x conversion effect".
+- [ ] Improve long-task UX with clearer progress, retry/fallback messaging, and mobile-friendly status views.
+- [ ] Add a P1 smoke test script and README demo path for local judging.
+
+### P2 / optional innovation candidates
+
+- [ ] Add reference or "explosive" video library: ingest public/self-owned reference videos and save only structured analysis, not copied video content.
+- [ ] Add strategy/factor/template library: cluster similar successful videos into reusable creative methods.
+- [ ] Add script generation modes: hot-video imitation, template-based generation, and automated strategy/factor/constraint composition.
+- [ ] Add script intervention: prompt tuning, shot add/remove, line rewrite, visual-style factor replacement, and fast regeneration.
+- [ ] Add A/B variant generation and comparison for scripts or finished videos.
+- [ ] Add multi-factor attribution over mock data: estimate which hook/style/subtitle/BGM factors correlate with CTR/CVR/completion.
+- [ ] Add compliance review flow: source declaration, copyright reminder, claim checks, authenticity/safety checks, and approval/block/fix decisions.
+- [ ] Add observability and CI/CD: request logs, task tracing, health checks, and automated build/test workflow.
+- [ ] Add product-link ingestion as an alternative to manual product/material upload.
+- [ ] Add polyglot/dubbing path for multilingual selling videos.
+
+### LangGraph usage map
+
+Current LangGraph usage:
+
+- `apps/agent/src/agent_app/agents/editing_graph.py` is the first runtime LangGraph.
+- `/editing/plan` calls `build_editing_plan()`, which delegates to `run_editing_graph()`.
+- The graph nodes are `start`, `retrieve_image_materials`, `rewrite_prompts`, `validate_constraints`, and `explain`.
+- Today this graph produces an Agent editing plan; it does not yet drive the P0 video pipeline until Node consumes the plan during task creation.
+
+Planned LangGraph expansion points:
+
+- Retry graph: read error -> classify cause -> patch prompt/duration -> check retry limit -> explain decision.
+- Creation orchestration graph: analyze material -> retrieve material -> plan shots -> generate -> validate -> retry -> postprocess.
+- Script strategy graph: pick strategy/factors -> generate variants -> rank -> explain.
+- Analytics graph: collect mock metrics -> attribute factors -> recommend next creative direction.
+- Compliance graph: check source/licensing/claims/safety -> approve, block, or suggest fixes.
+
 ## File Structure
 
 Create:
@@ -1457,7 +1505,7 @@ git commit -m "feat(agent): add subtitle postprocess endpoint"
 - Create: `apps/api/src/lib/agentClient.ts`
 - Test manually with existing typecheck
 
-- [ ] **Step 1: Add env vars**
+- [x] **Step 1: Add env vars**
 
 Add to `.env.example`:
 
@@ -1470,7 +1518,7 @@ P1_ENABLE_BGM=false
 P1_ENABLE_TTS=false
 ```
 
-- [ ] **Step 2: Extend `env.ts`**
+- [x] **Step 2: Extend `env.ts`**
 
 Add fields:
 
@@ -1483,7 +1531,7 @@ P1_ENABLE_BGM: z.coerce.boolean().default(false),
 P1_ENABLE_TTS: z.coerce.boolean().default(false),
 ```
 
-- [ ] **Step 3: Create agent client**
+- [x] **Step 3: Create agent client**
 
 Create `apps/api/src/lib/agentClient.ts`:
 
@@ -1514,7 +1562,7 @@ export async function callAgent<TReq, TResp>(path: string, body: TReq): Promise<
 }
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -1538,7 +1586,7 @@ git commit -m "feat(api): add python agent client"
 - Modify: `packages/shared/src/api.schema.ts`
 - Modify: `packages/shared/src/task.schema.ts`
 
-- [ ] **Step 1: Extend Prisma models**
+- [x] **Step 1: Extend Prisma models**
 
 Add fields to `Material`:
 
@@ -1592,7 +1640,7 @@ model MockMetric {
 }
 ```
 
-- [ ] **Step 2: Extend Material DTO**
+- [x] **Step 2: Extend Material DTO**
 
 Add optional fields to `MaterialDtoSchema`:
 
@@ -1603,7 +1651,7 @@ embeddingText: z.string().nullable().optional(),
 analyzedAt: z.string().nullable().optional(),
 ```
 
-- [ ] **Step 3: Extend Shot DTO**
+- [x] **Step 3: Extend Shot DTO**
 
 Add fields to `ShotDtoSchema`:
 
@@ -1615,7 +1663,7 @@ sourceMaterialId: z.string().nullable().optional(),
 retryCount: z.number().int().nonnegative().optional(),
 ```
 
-- [ ] **Step 4: Add API schemas**
+- [x] **Step 4: Add API schemas**
 
 Add:
 
@@ -1644,7 +1692,7 @@ export const TraceDtoSchema = z.object({
 export type TraceDto = z.infer<typeof TraceDtoSchema>;
 ```
 
-- [ ] **Step 5: Push database**
+- [x] **Step 5: Push database**
 
 Run:
 
@@ -1770,7 +1818,7 @@ git commit -m "feat(api): persist task trace events"
 - Modify: `apps/api/src/modules/material/material.router.ts`
 - Modify: `packages/shared/src/api.schema.ts`
 
-- [ ] **Step 1: Extend material DTO mapper**
+- [x] **Step 1: Extend material DTO mapper**
 
 Modify `toDto()` to include:
 
@@ -1783,7 +1831,7 @@ analyzedAt: record.analyzedAt?.toISOString() ?? null,
 
 Update the `record` type in `toDto()` to include the new nullable fields.
 
-- [ ] **Step 2: Add service function `analyzeMaterial`**
+- [x] **Step 2: Add service function `analyzeMaterial`**
 
 Add to `material.service.ts`:
 
@@ -1826,7 +1874,7 @@ export async function analyzeMaterial(id: string): Promise<MaterialDto> {
 }
 ```
 
-- [ ] **Step 3: Add analyze route**
+- [x] **Step 3: Add analyze route**
 
 Modify `material.router.ts`:
 
@@ -1842,7 +1890,7 @@ materialRouter.post('/:id/analyze', async (req, res, next) => {
 });
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -1866,7 +1914,7 @@ git commit -m "feat(api): add material agent analysis endpoint"
 - Modify: `apps/api/src/modules/task/task.service.ts`
 - Modify: `packages/shared/src/api.schema.ts`
 
-- [ ] **Step 1: Add shared editing plan DTOs**
+- [x] **Step 1: Add shared editing plan DTOs**
 
 Add to shared API schema:
 
@@ -1889,7 +1937,7 @@ export const EditingPlanDtoSchema = z.object({
 export type EditingPlanDto = z.infer<typeof EditingPlanDtoSchema>;
 ```
 
-- [ ] **Step 2: Add route `POST /api/scripts/:id/editing-plan`**
+- [x] **Step 2: Add route `POST /api/scripts/:id/editing-plan`**
 
 In `script.router.ts`, load script, product, analyzed materials, call `/editing/plan`, return the plan. Request body is empty for v1.
 
@@ -1946,7 +1994,7 @@ scriptRouter.post('/:id/editing-plan', async (req, res, next) => {
 
 Add imports for `prisma` and `callAgent`.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run:
 

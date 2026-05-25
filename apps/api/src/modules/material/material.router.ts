@@ -3,7 +3,7 @@ import multer from 'multer';
 
 import { logger } from '../../lib/logger';
 
-import { deleteMaterial, listMaterials, saveUploadedMaterial } from './material.service';
+import { analyzeMaterial, deleteMaterial, listMaterials, saveUploadedMaterial } from './material.service';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -37,6 +37,20 @@ materialRouter.post('/', upload.single('file'), async (req, res, next) => {
     });
     logger.info({ materialId: dto.id, size: dto.size }, 'material uploaded');
     res.status(201).json(dto);
+  } catch (err) {
+    next(err);
+  }
+});
+
+materialRouter.post('/:id/analyze', async (req, res, next) => {
+  try {
+    const dto = await analyzeMaterial(req.params.id);
+    if (!dto) {
+      res.status(404).json({ message: 'material not found' });
+      return;
+    }
+    logger.info({ materialId: dto.id, tags: dto.tags }, 'material analyzed by python agent');
+    res.json(dto);
   } catch (err) {
     next(err);
   }

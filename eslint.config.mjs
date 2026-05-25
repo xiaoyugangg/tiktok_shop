@@ -20,7 +20,9 @@ const nodeGlobals = {
   URL: 'readonly',
   URLSearchParams: 'readonly',
   fetch: 'readonly',
+  AbortSignal: 'readonly',
   AbortController: 'readonly',
+  RequestInit: 'readonly',
   global: 'readonly',
 };
 
@@ -45,6 +47,9 @@ export default [
       '**/dist/**',
       '**/build/**',
       '**/.vite/**',
+      '**/.pytest_cache/**',
+      '**/.ruff_cache/**',
+      '**/__pycache__/**',
       'storage/**',
       'apps/api/prisma/migrations/**',
       '**/*.config.{js,mjs,cjs,ts}',

@@ -33,6 +33,8 @@ export async function createTask(args: {
       description: shot.description,
       cameraMotion: shot.cameraMotion ?? '',
       durationSec: shot.durationSec,
+      subtitle: shot.subtitle ?? null,
+      bgmHint: shot.bgmHint ?? null,
       status: 'pending',
     })),
   });
@@ -138,6 +140,11 @@ function toTaskDto(record: {
     description: string;
     cameraMotion: string;
     durationSec: number;
+    prompt: string | null;
+    subtitle: string | null;
+    bgmHint: string | null;
+    sourceMaterialId: string | null;
+    retryCount: number;
     status: string;
     imagePath: string | null;
     clipPath: string | null;
@@ -150,6 +157,11 @@ function toTaskDto(record: {
     description: s.description,
     cameraMotion: s.cameraMotion,
     durationSec: s.durationSec,
+    prompt: s.prompt,
+    subtitle: s.subtitle,
+    bgmHint: s.bgmHint,
+    sourceMaterialId: s.sourceMaterialId,
+    retryCount: s.retryCount,
     status: (s.status as ShotStatus) ?? 'pending',
     imageUrl: s.imagePath ? publicUrlForRelative(s.imagePath) : null,
     clipUrl: s.clipPath ? publicUrlForRelative(s.clipPath) : null,
