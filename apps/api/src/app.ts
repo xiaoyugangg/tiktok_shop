@@ -1,0 +1,53 @@
+import path from 'node:path';
+
+import cors from 'cors';
+import express, { type NextFunction, type Request, type Response } from 'express';
+
+import { env } from './env';
+import { logger } from './lib/logger';
+import { STORAGE_ROOT } from './lib/storage';
+import { materialRouter } from './modules/material/material.router';
+import { productRouter } from './modules/product/product.router';
+import { scriptRouter } from './modules/script/script.router';
+import { taskRouter } from './modules/task/task.router';
+
+export function createApp() {
+  const app = express();
+  app.use(cors());
+  app.use(express.json({ limit: '5mb' }));
+
+  app.use(
+    '/static',
+    express.static(STORAGE_ROOT, {
+      setHeaders: (res) => {
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+      },
+    }),
+  );
+
+  app.get('/api/health', (_req, res) => {
+    res.json({
+      ok: true,
+      modelMode: env.MODEL_MODE,
+      storageRoot: path.basename(STORAGE_ROOT),
+      version: '0.1.0',
+    });
+  });
+
+  app.use('/api/materials', materialRouter);
+  app.use('/api/products', productRouter);
+  app.use('/api/scripts', scriptRouter);
+  app.use('/api/tasks', taskRouter);
+
+  app.use((req, res) => {
+    res.status(404).json({ message: `route ${req.path} not found` });
+  });
+
+  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    logger.error({ err }, 'unhandled error');
+    const message = err instanceof Error ? err.message : 'internal error';
+    res.status(500).json({ message });
+  });
+
+  return app;
+}

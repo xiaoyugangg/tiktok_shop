@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Material {
+  id         String   @id @default(cuid())
+  kind       String
+  filename   String
+  path       String
+  mime       String
+  size       Int
+  productId  String?
+  product    Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([productId])
+}
+
+model Product {
+  id              String       @id @default(cuid())
+  title           String
+  sellingPoints   String
+  targetAudience  String?
+  scene           String?
+  mainMaterialId  String?
+  materials       Material[]
+  scripts         Script[]
+  tasks           VideoTask[]
+  createdAt       DateTime     @default(now())
+}
+
+model Script {
+  id         String      @id @default(cuid())
+  productId  String
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  payload    String
+  createdAt  DateTime    @default(now())
+  tasks      VideoTask[]
+
+  @@index([productId])
+}
+
+model VideoTask {
+  id         String   @id @default(cuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  scriptId   String
+  script     Script   @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  ratio      String
+  status     String
+  errorMsg   String?
+  outputPath String?
+  shots      Shot[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([status])
+}
+
+model Shot {
+  id            String    @id @default(cuid())
+  taskId        String
+  task          VideoTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  idx           Int
+  description   String
+  cameraMotion  String
+  durationSec   Float
+  imagePath     String?
+  clipPath      String?
+  status        String
+  errorMsg      String?
+
+  @@index([taskId])
+  @@unique([taskId, idx])
+}
