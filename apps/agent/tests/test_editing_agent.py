@@ -35,4 +35,5 @@ def test_editing_plan_returns_one_planned_shot_per_input_shot():
     assert len(plan.shots) == 2
     assert plan.shots[0].source_material_id == "m1"
     assert "Wireless Earbuds" in plan.shots[0].prompt
-    assert plan.trace[0].stage == "agent.plan.start"
+    assert any(t.stage == "agent.graph.start" for t in plan.trace)
+    assert "LangGraph" in plan.strategy

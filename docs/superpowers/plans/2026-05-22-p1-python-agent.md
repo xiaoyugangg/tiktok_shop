@@ -708,7 +708,7 @@ start
 
 Important model constraint: the current Seedance video model should be treated as text-to-video or image-to-video with image first frame input. Therefore material selection must prefer `kind == "image"`. Video materials can appear in analysis/search results, but the editing graph must not select a video material as `source_material_id` for Seedance first-frame generation unless no image material exists.
 
-- [ ] **Step 1: Add LangGraph dependencies**
+- [x] **Step 1: Add LangGraph dependencies**
 
 Modify `apps/agent/pyproject.toml` dependencies:
 
@@ -734,7 +734,7 @@ conda run --no-capture-output -n tiktop_agent_p1 python -m pip install -e ".[dev
 
 Expected: dependencies install successfully.
 
-- [ ] **Step 2: Write graph test first**
+- [x] **Step 2: Write graph test first**
 
 Create `apps/agent/tests/test_editing_graph.py`:
 
@@ -786,7 +786,7 @@ def test_build_editing_graph_compiles():
     assert graph is not None
 ```
 
-- [ ] **Step 3: Run graph test to verify it fails**
+- [x] **Step 3: Run graph test to verify it fails**
 
 Run:
 
@@ -797,7 +797,7 @@ conda run --no-capture-output -n tiktop_agent_p1 python -m pytest tests/test_edi
 
 Expected: FAIL because `agent_app.agents.editing_graph` does not exist yet.
 
-- [ ] **Step 4: Implement LangGraph editing graph**
+- [x] **Step 4: Implement LangGraph editing graph**
 
 Create `apps/agent/src/agent_app/agents/editing_graph.py`:
 
@@ -953,7 +953,7 @@ def run_editing_graph(req: EditingPlanRequest) -> EditingPlanResponse:
     )
 ```
 
-- [ ] **Step 5: Route existing editing agent through LangGraph**
+- [x] **Step 5: Route existing editing agent through LangGraph**
 
 Modify `apps/agent/src/agent_app/agents/editing_agent.py` so `build_editing_plan()` delegates to the LangGraph runtime:
 
@@ -968,7 +968,7 @@ def build_editing_plan(req: EditingPlanRequest) -> EditingPlanResponse:
 
 The old rule-based logic can be removed from this file. Keep the public function name `build_editing_plan` because `main.py` and existing tests import it.
 
-- [ ] **Step 6: Update existing editing test expectations**
+- [x] **Step 6: Update existing editing test expectations**
 
 Modify `apps/agent/tests/test_editing_agent.py`:
 
@@ -982,7 +982,7 @@ def test_editing_plan_returns_one_planned_shot_per_input_shot():
     assert "LangGraph" in plan.strategy
 ```
 
-- [ ] **Step 7: Verify LangGraph editing agent**
+- [x] **Step 7: Verify LangGraph editing agent**
 
 Run:
 
@@ -999,7 +999,7 @@ all selected tests pass
 All checks passed!
 ```
 
-- [ ] **Step 8: Verify full Python Agent test suite**
+- [x] **Step 8: Verify full Python Agent test suite**
 
 Run:
 
@@ -1015,7 +1015,7 @@ all tests pass
 All checks passed!
 ```
 
-- [ ] **Step 9: Commit LangGraph runtime**
+- [x] **Step 9: Commit LangGraph runtime**
 
 ```powershell
 git add apps/agent/pyproject.toml apps/agent/src/agent_app/agents/editing_graph.py apps/agent/src/agent_app/agents/editing_agent.py apps/agent/tests/test_editing_graph.py apps/agent/tests/test_editing_agent.py docs/superpowers/plans/2026-05-22-p1-python-agent.md
