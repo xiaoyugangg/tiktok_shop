@@ -4,9 +4,9 @@
 
 **Goal:** Build P1 features for the AIGC e-commerce video system with a Python Agent service while keeping the existing React + Express + Prisma P0 framework stable.
 
-**Architecture:** Keep Node/Express as the main backend for REST APIs, DB writes, task status, SSE, Seedance calls, and ffmpeg stitching. Add a Python FastAPI + LangGraph-style Agent service for material analysis, embedding-like retrieval, shot planning, retry decisions, subtitle/BGM postprocessing, and mock analytics. Frontend changes should expose Agent decisions and P1 controls without replacing existing P0 flows.
+**Architecture:** Keep Node/Express as the main backend for REST APIs, DB writes, task status, SSE, Seedance calls, and ffmpeg stitching. Add a Python FastAPI + LangGraph Agent service for material analysis, embedding-like retrieval, shot planning, retry decisions, subtitle/BGM postprocessing, and mock analytics. Frontend changes should expose Agent decisions and P1 controls without replacing existing P0 flows.
 
-**Tech Stack:** Existing React 18, Ant Design, TypeScript, Express, Prisma, SQLite, ffmpeg; new Python 3.11+, FastAPI, Pydantic, pytest, httpx, numpy, optional LangGraph, optional ECharts on frontend.
+**Tech Stack:** Existing React 18, Ant Design, TypeScript, Express, Prisma, SQLite, ffmpeg; new Python 3.11+, FastAPI, Pydantic, pytest, httpx, numpy, LangGraph, langchain-core, optional ECharts on frontend.
 
 ---
 
@@ -41,6 +41,12 @@ P1 feature mapping:
 | 生成过程 trace | Persisted trace table + frontend trace panel |
 | Mock 数据看板 | Python mock metrics + React charts |
 | 体现 Agent 开发 | Agent graph steps and explanations are visible in trace and shot plan UI |
+
+Why LangGraph, not plain LangChain:
+
+- This project needs a visible, controllable multi-step workflow: read inputs, retrieve image material, rewrite prompts, validate constraints, explain decisions, and later retry failures. LangGraph maps these steps to explicit graph nodes and state transitions.
+- LangChain agents are useful for broad tool-calling conversations, but the video pipeline is a deterministic long-running workflow where we want predictable stages, testable node functions, and trace names that can be shown in the UI.
+- Coding agent SDKs such as Codex/Claude Code/opencode are better suited to development-time code tasks, not merchant-facing runtime video generation. The product runtime Agent will use LangGraph; coding agents can still be mentioned as development assistance, not as the production request path.
 
 ## File Structure
 
@@ -676,6 +682,344 @@ Commit:
 ```powershell
 git add apps/agent
 git commit -m "feat(agent): add editing plan agent"
+```
+
+## Task 3.5: Replace Editing Planner with LangGraph Runtime
+
+**Files:**
+- Modify: `apps/agent/pyproject.toml`
+- Create: `apps/agent/src/agent_app/agents/editing_graph.py`
+- Modify: `apps/agent/src/agent_app/agents/editing_agent.py`
+- Modify: `apps/agent/src/agent_app/main.py`
+- Modify: `apps/agent/tests/test_editing_agent.py`
+- Test: `apps/agent/tests/test_editing_graph.py`
+
+This task is required because the competition task explicitly allows Agent frameworks such as LangChain/LangGraph, and the project should visibly demonstrate Agent development. Use LangGraph for the runtime product Agent because the editing plan is a staged workflow, not an open-ended chat. Do not use a coding agent SDK in the merchant-facing runtime path.
+
+The editing graph must have these nodes:
+
+```text
+start
+-> retrieve_image_materials
+-> rewrite_prompts
+-> validate_constraints
+-> explain
+```
+
+Important model constraint: the current Seedance video model should be treated as text-to-video or image-to-video with image first frame input. Therefore material selection must prefer `kind == "image"`. Video materials can appear in analysis/search results, but the editing graph must not select a video material as `source_material_id` for Seedance first-frame generation unless no image material exists.
+
+- [ ] **Step 1: Add LangGraph dependencies**
+
+Modify `apps/agent/pyproject.toml` dependencies:
+
+```toml
+dependencies = [
+  "fastapi>=0.111.0",
+  "uvicorn[standard]>=0.30.0",
+  "pydantic>=2.7.0",
+  "pydantic-settings>=2.3.0",
+  "httpx>=0.27.0",
+  "numpy>=1.26.0",
+  "langgraph>=0.2.60",
+  "langchain-core>=0.3.0"
+]
+```
+
+Run:
+
+```powershell
+cd apps\agent
+conda run --no-capture-output -n tiktop_agent_p1 python -m pip install -e ".[dev]"
+```
+
+Expected: dependencies install successfully.
+
+- [ ] **Step 2: Write graph test first**
+
+Create `apps/agent/tests/test_editing_graph.py`:
+
+```python
+from agent_app.agents.editing_graph import build_editing_graph, run_editing_graph
+from agent_app.schemas import (
+    EditingPlanRequest,
+    MaterialSummary,
+    ProductInput,
+    ScriptInput,
+    ShotInput,
+)
+
+
+def test_editing_graph_prefers_image_material_over_video_material():
+    req = EditingPlanRequest(
+        product=ProductInput(title="Wireless Earbuds", selling_points=["noise cancelling"]),
+        script=ScriptInput(
+            narrative="Hook then product benefit",
+            visual_style="bright clean",
+            ratio="9:16",
+            shots=[ShotInput(idx=0, description="show product close-up", duration_sec=4)],
+        ),
+        materials=[
+            MaterialSummary(
+                material_id="video1",
+                kind="video",
+                summary="earbuds lifestyle video",
+                tags=["earbuds", "video"],
+                embedding_text="earbuds lifestyle video",
+            ),
+            MaterialSummary(
+                material_id="image1",
+                kind="image",
+                summary="white earbuds product image",
+                tags=["earbuds", "image"],
+                embedding_text="white earbuds product image",
+            ),
+        ],
+    )
+    plan = run_editing_graph(req)
+    assert plan.shots[0].source_material_id == "image1"
+    assert any(t.stage == "agent.graph.retrieve_image_materials" for t in plan.trace)
+    assert "LangGraph" in plan.strategy
+
+
+def test_build_editing_graph_compiles():
+    graph = build_editing_graph()
+    assert graph is not None
+```
+
+- [ ] **Step 3: Run graph test to verify it fails**
+
+Run:
+
+```powershell
+cd apps\agent
+conda run --no-capture-output -n tiktop_agent_p1 python -m pytest tests/test_editing_graph.py -v
+```
+
+Expected: FAIL because `agent_app.agents.editing_graph` does not exist yet.
+
+- [ ] **Step 4: Implement LangGraph editing graph**
+
+Create `apps/agent/src/agent_app/agents/editing_graph.py`:
+
+```python
+from typing import TypedDict
+
+from langgraph.graph import END, StateGraph
+
+from agent_app.schemas import EditingPlanRequest, EditingPlanResponse, MaterialSummary, PlannedShot, TraceItem
+
+
+class EditingGraphState(TypedDict):
+    req: EditingPlanRequest
+    selected_materials: dict[int, str | None]
+    planned_shots: list[PlannedShot]
+    trace: list[TraceItem]
+
+
+def _score_material(material: MaterialSummary, shot_text: str) -> int:
+    material_text = f"{material.embedding_text} {material.summary} {' '.join(material.tags)}".lower()
+    shot_tokens = set(shot_text.lower().split())
+    return len(shot_tokens.intersection(set(material_text.split())))
+
+
+def _choose_material(req: EditingPlanRequest, shot_text: str) -> str | None:
+    if not req.materials:
+        return None
+    image_materials = [m for m in req.materials if m.kind == "image"]
+    candidates = image_materials or req.materials
+    ranked = sorted(candidates, key=lambda m: _score_material(m, shot_text), reverse=True)
+    return ranked[0].material_id
+
+
+def start_node(state: EditingGraphState) -> EditingGraphState:
+    state["trace"].append(
+        TraceItem(stage="agent.graph.start", message="LangGraph received product, script, and materials")
+    )
+    return state
+
+
+def retrieve_image_materials_node(state: EditingGraphState) -> EditingGraphState:
+    req = state["req"]
+    points = " / ".join(req.product.selling_points[:3])
+    selected: dict[int, str | None] = {}
+    for shot in req.script.shots:
+        selected[shot.idx] = _choose_material(req, f"{shot.description} {req.product.title} {points}")
+    state["selected_materials"] = selected
+    state["trace"].append(
+        TraceItem(
+            stage="agent.graph.retrieve_image_materials",
+            message="Selected image-first material candidates for Seedance first-frame generation",
+            payload={"selected": selected},
+        )
+    )
+    return state
+
+
+def rewrite_prompts_node(state: EditingGraphState) -> EditingGraphState:
+    req = state["req"]
+    planned: list[PlannedShot] = []
+    for shot in req.script.shots:
+        subtitle = shot.subtitle or (
+            req.product.selling_points[shot.idx % len(req.product.selling_points)]
+            if req.product.selling_points
+            else req.product.title
+        )
+        prompt = (
+            f"Create a {req.script.ratio} e-commerce short video shot for {req.product.title}. "
+            f"Scene: {shot.description}. Visual style: {req.script.visual_style}. "
+            f"Selling point: {subtitle}. Use the selected image as first-frame reference when available. "
+            f"Avoid real human faces and avoid exaggerated product claims."
+        )
+        planned.append(
+            PlannedShot(
+                idx=shot.idx,
+                prompt=prompt,
+                subtitle=subtitle[:120],
+                bgm_hint=shot.bgm_hint or "upbeat commercial",
+                duration_sec=int(shot.duration_sec),
+                source_material_id=state["selected_materials"].get(shot.idx),
+                reason="LangGraph selected image-first material and rewrote prompt for Seedance generation",
+            )
+        )
+    state["planned_shots"] = planned
+    state["trace"].append(
+        TraceItem(stage="agent.graph.rewrite_prompts", message="Rewrote shot prompts with product and policy constraints")
+    )
+    return state
+
+
+def validate_constraints_node(state: EditingGraphState) -> EditingGraphState:
+    validated: list[PlannedShot] = []
+    for shot in state["planned_shots"]:
+        validated.append(
+            PlannedShot(
+                idx=shot.idx,
+                prompt=shot.prompt,
+                subtitle=shot.subtitle,
+                bgm_hint=shot.bgm_hint,
+                duration_sec=max(2, min(12, int(shot.duration_sec))),
+                source_material_id=shot.source_material_id,
+                reason=shot.reason,
+            )
+        )
+    state["planned_shots"] = validated
+    state["trace"].append(
+        TraceItem(stage="agent.graph.validate_constraints", message="Clamped shot duration to Seedance-supported range")
+    )
+    return state
+
+
+def explain_node(state: EditingGraphState) -> EditingGraphState:
+    state["trace"].append(
+        TraceItem(
+            stage="agent.graph.explain",
+            message="Prepared explainable editing plan for frontend review",
+            payload={"shot_count": len(state["planned_shots"])},
+        )
+    )
+    return state
+
+
+def build_editing_graph():
+    graph = StateGraph(EditingGraphState)
+    graph.add_node("start", start_node)
+    graph.add_node("retrieve_image_materials", retrieve_image_materials_node)
+    graph.add_node("rewrite_prompts", rewrite_prompts_node)
+    graph.add_node("validate_constraints", validate_constraints_node)
+    graph.add_node("explain", explain_node)
+    graph.set_entry_point("start")
+    graph.add_edge("start", "retrieve_image_materials")
+    graph.add_edge("retrieve_image_materials", "rewrite_prompts")
+    graph.add_edge("rewrite_prompts", "validate_constraints")
+    graph.add_edge("validate_constraints", "explain")
+    graph.add_edge("explain", END)
+    return graph.compile()
+
+
+def run_editing_graph(req: EditingPlanRequest) -> EditingPlanResponse:
+    compiled = build_editing_graph()
+    final_state = compiled.invoke(
+        {
+            "req": req,
+            "selected_materials": {},
+            "planned_shots": [],
+            "trace": [],
+        }
+    )
+    return EditingPlanResponse(
+        shots=final_state["planned_shots"],
+        strategy="LangGraph Agent v1: image-first retrieval -> prompt rewrite -> constraint validation -> explanation",
+        trace=final_state["trace"],
+    )
+```
+
+- [ ] **Step 5: Route existing editing agent through LangGraph**
+
+Modify `apps/agent/src/agent_app/agents/editing_agent.py` so `build_editing_plan()` delegates to the LangGraph runtime:
+
+```python
+from agent_app.agents.editing_graph import run_editing_graph
+from agent_app.schemas import EditingPlanRequest, EditingPlanResponse
+
+
+def build_editing_plan(req: EditingPlanRequest) -> EditingPlanResponse:
+    return run_editing_graph(req)
+```
+
+The old rule-based logic can be removed from this file. Keep the public function name `build_editing_plan` because `main.py` and existing tests import it.
+
+- [ ] **Step 6: Update existing editing test expectations**
+
+Modify `apps/agent/tests/test_editing_agent.py`:
+
+```python
+def test_editing_plan_returns_one_planned_shot_per_input_shot():
+    ...
+    assert len(plan.shots) == 2
+    assert plan.shots[0].source_material_id == "m1"
+    assert "Wireless Earbuds" in plan.shots[0].prompt
+    assert any(t.stage == "agent.graph.start" for t in plan.trace)
+    assert "LangGraph" in plan.strategy
+```
+
+- [ ] **Step 7: Verify LangGraph editing agent**
+
+Run:
+
+```powershell
+cd apps\agent
+conda run --no-capture-output -n tiktop_agent_p1 python -m pytest tests/test_editing_graph.py tests/test_editing_agent.py -v
+conda run --no-capture-output -n tiktop_agent_p1 python -m ruff check .
+```
+
+Expected:
+
+```text
+all selected tests pass
+All checks passed!
+```
+
+- [ ] **Step 8: Verify full Python Agent test suite**
+
+Run:
+
+```powershell
+pnpm test:agent
+pnpm lint:agent
+```
+
+Expected:
+
+```text
+all tests pass
+All checks passed!
+```
+
+- [ ] **Step 9: Commit LangGraph runtime**
+
+```powershell
+git add apps/agent/pyproject.toml apps/agent/src/agent_app/agents/editing_graph.py apps/agent/src/agent_app/agents/editing_agent.py apps/agent/tests/test_editing_graph.py apps/agent/tests/test_editing_agent.py docs/superpowers/plans/2026-05-22-p1-python-agent.md
+git commit -m "feat(agent): add langgraph editing runtime"
 ```
 
 ## Task 4: Implement Retry Decision Agent
