@@ -489,7 +489,7 @@ git commit -m "feat(agent): add material analysis and retrieval"
 - Modify: `apps/agent/src/agent_app/main.py`
 - Test: `apps/agent/tests/test_editing_agent.py`
 
-- [ ] **Step 1: Add editing schemas**
+- [x] **Step 1: Add editing schemas**
 
 Extend `schemas.py`:
 
@@ -549,7 +549,7 @@ class EditingPlanResponse(BaseModel):
     trace: list[TraceItem]
 ```
 
-- [ ] **Step 2: Write editing tests**
+- [x] **Step 2: Write editing tests**
 
 Create `tests/test_editing_agent.py`:
 
@@ -588,7 +588,7 @@ def test_editing_plan_returns_one_planned_shot_per_input_shot():
     assert plan.trace[0].stage == "agent.plan.start"
 ```
 
-- [ ] **Step 3: Implement rule-based Agent graph**
+- [x] **Step 3: Implement rule-based Agent graph**
 
 Create `agents/editing_agent.py`:
 
@@ -642,7 +642,7 @@ def build_editing_plan(req: EditingPlanRequest) -> EditingPlanResponse:
     )
 ```
 
-- [ ] **Step 4: Expose endpoint**
+- [x] **Step 4: Expose endpoint**
 
 Modify `main.py`:
 
@@ -656,7 +656,7 @@ def editing_plan(req: EditingPlanRequest) -> EditingPlanResponse:
     return build_editing_plan(req)
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 

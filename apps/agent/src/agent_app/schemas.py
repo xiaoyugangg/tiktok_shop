@@ -46,3 +46,58 @@ class MaterialSearchResult(BaseModel):
 class MaterialSearchResponse(BaseModel):
     results: list[MaterialSearchResult]
     trace: list[TraceItem]
+
+
+class ShotInput(BaseModel):
+    idx: int
+    description: str
+    camera_motion: str = ""
+    subtitle: str = ""
+    bgm_hint: str = ""
+    duration_sec: int
+
+
+class ScriptInput(BaseModel):
+    narrative: str
+    visual_style: str
+    ratio: str
+    shots: list[ShotInput]
+
+
+class ProductInput(BaseModel):
+    id: str | None = None
+    title: str
+    selling_points: list[str] = Field(default_factory=list)
+    target_audience: str | None = None
+    scene: str | None = None
+
+
+class MaterialSummary(BaseModel):
+    material_id: str
+    kind: str
+    summary: str
+    tags: list[str] = Field(default_factory=list)
+    embedding_text: str = ""
+    embedding_vector: list[float] = Field(default_factory=list)
+
+
+class EditingPlanRequest(BaseModel):
+    product: ProductInput
+    script: ScriptInput
+    materials: list[MaterialSummary] = Field(default_factory=list)
+
+
+class PlannedShot(BaseModel):
+    idx: int
+    prompt: str
+    subtitle: str
+    bgm_hint: str
+    duration_sec: int
+    source_material_id: str | None = None
+    reason: str
+
+
+class EditingPlanResponse(BaseModel):
+    shots: list[PlannedShot]
+    strategy: str
+    trace: list[TraceItem]

@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 
+from agent_app.agents.editing_agent import build_editing_plan
 from agent_app.agents.material_agent import analyze_material, search_materials
 from agent_app.config import settings
 from agent_app.schemas import (
+    EditingPlanRequest,
+    EditingPlanResponse,
     HealthResponse,
     MaterialAnalyzeRequest,
     MaterialAnalyzeResponse,
@@ -26,3 +29,8 @@ def material_analyze(req: MaterialAnalyzeRequest) -> MaterialAnalyzeResponse:
 @app.post("/materials/search", response_model=MaterialSearchResponse)
 def material_search(req: MaterialSearchRequest) -> MaterialSearchResponse:
     return search_materials(req)
+
+
+@app.post("/editing/plan", response_model=EditingPlanResponse)
+def editing_plan(req: EditingPlanRequest) -> EditingPlanResponse:
+    return build_editing_plan(req)
