@@ -1630,7 +1630,7 @@ git commit -m "feat(api): delegate video pipeline to python"
 - Modify: `docs/项目讲解.md`
 - Modify: `docs/superpowers/plans/2026-05-22-p1-python-agent.md`
 
-- [ ] **Step 1: Update README architecture**
+- [x] **Step 1: Update README architecture**
 
 Add:
 
@@ -1655,7 +1655,7 @@ pnpm dev:web
 In this mode Node keeps the frontend API, Prisma database, upload/static files, task creation, and SSE progress. Python owns the AI workflow: script generation, LangGraph video pipeline, Seedance video calls, retry decisions, FFmpeg stitching, subtitle postprocess, and Agent traces via internal callbacks.
 ```
 
-- [ ] **Step 2: Update project explanation**
+- [x] **Step 2: Update project explanation**
 
 Add to `docs/项目讲解.md`:
 
@@ -1671,7 +1671,7 @@ React -> Node API -> Python Agent/Pipeline
 Node 继续负责 Prisma 数据库、素材上传、静态资源、任务查询、SSE。Python 负责模型调用、LangGraph 工作流、分镜生成、失败重试、拼接后处理和 Agent trace 回写。
 ```
 
-- [ ] **Step 3: Mark migration plan relationship in old P1 plan**
+- [x] **Step 3: Mark migration plan relationship in old P1 plan**
 
 Append to `docs/superpowers/plans/2026-05-22-p1-python-agent.md`:
 
@@ -1685,7 +1685,7 @@ The Python backend migration is tracked separately in:
 That plan moves AI-heavy runtime work from Node to Python while keeping Node as the stable API gateway and Prisma owner.
 ```
 
-- [ ] **Step 4: Final verification**
+- [x] **Step 4: Final verification**
 
 Run:
 
@@ -1703,7 +1703,7 @@ all checks pass
 web build succeeds, allowing the existing ECharts chunk-size warning
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add README.md docs/项目讲解.md docs/superpowers/plans/2026-05-22-p1-python-agent.md docs/superpowers/plans/2026-05-26-python-backend-migration.md

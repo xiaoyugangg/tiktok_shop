@@ -47,6 +47,7 @@ export default [
       '**/dist/**',
       '**/build/**',
       '**/.vite/**',
+      '**/.codex/**',
       '**/.pytest_cache/**',
       '**/.ruff_cache/**',
       '**/__pycache__/**',

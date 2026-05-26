@@ -2708,7 +2708,7 @@ git commit -m "feat(web): label p1 enhanced preview"
 - Create: `scripts/smoke-p1.ps1`
 - Modify: `README.md`
 
-- [ ] **Step 1: Create smoke script**
+- [x] **Step 1: Create smoke script**
 
 Create PowerShell script that:
 
@@ -2723,7 +2723,7 @@ polls until succeeded/failed
 prints outputUrl
 ```
 
-- [ ] **Step 2: Add README usage**
+- [x] **Step 2: Add README usage**
 
 Add:
 
@@ -2734,7 +2734,7 @@ pnpm dev:agent
 .\scripts\smoke-p1.ps1
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run only after Python and Node servers are started:
 
@@ -2748,7 +2748,10 @@ Expected:
 agent ok
 api ok
 task succeeded
+outputUrl printed
 ```
+
+Verified with `.\scripts\smoke-p1.ps1 -RunVideoTask`.
 
 Commit:
 
@@ -2763,7 +2766,7 @@ git commit -m "docs: add p1 smoke test instructions"
 - Modify: `README.md`
 - Modify: `docs/项目讲解.md`
 
-- [ ] **Step 1: Update README P1 section**
+- [x] **Step 1: Update README P1 section**
 
 Replace P1 todo with implemented list:
 
@@ -2779,7 +2782,7 @@ P1 已实现:
 - Mock 数据看板
 ```
 
-- [ ] **Step 2: Update architecture docs**
+- [x] **Step 2: Update architecture docs**
 
 Add a section:
 
@@ -2800,7 +2803,7 @@ flowchart LR
   API --> FFMPEG[ffmpeg]
 ```
 
-- [ ] **Step 3: Full verification**
+- [x] **Step 3: Full verification**
 
 Run:
 
@@ -2819,7 +2822,7 @@ Expected:
 all pass
 ```
 
-- [ ] **Step 4: Manual demo checklist**
+- [x] **Step 4: Manual demo checklist**
 
 Open:
 
@@ -2844,7 +2847,7 @@ open preview
 open analytics dashboard
 ```
 
-- [ ] **Step 5: Commit docs**
+- [x] **Step 5: Commit docs**
 
 ```powershell
 git add README.md docs/项目讲解.md
@@ -2866,6 +2869,14 @@ Spec coverage:
 - Existing framework stability: Node remains main backend; P0 endpoints are preserved.
 
 Implementation defaults:
+
+## Follow-up Migration Plan
+
+The Python backend migration is tracked separately in:
+
+`docs/superpowers/plans/2026-05-26-python-backend-migration.md`
+
+That plan moves AI-heavy runtime work from Node to Python while keeping Node as the stable API gateway and Prisma owner.
 
 - Keep `pnpm dev` unchanged until all P1 services are stable.
 - Start Python with `pnpm dev:agent`.

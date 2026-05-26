@@ -11,6 +11,7 @@ storage/
 *.tsbuildinfo
 .vite/
 .turbo/
+.codex/
 coverage/
 __pycache__/
 *.egg-info/

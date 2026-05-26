@@ -171,3 +171,81 @@ queued
 ## License
 
 MIT
+
+## P1 Implemented Capabilities
+
+- Python FastAPI Agent service with LangGraph workflow nodes.
+- Material analysis with tags, summary, mock embedding vector, and similarity retrieval support.
+- Intelligent editing plan Agent for material-aware prompt rewrite, subtitle hints, BGM hints, duration validation, and source material selection.
+- Shot-level editing, single-shot regeneration, retry count tracking, and restitching.
+- Subtitle/BGM postprocess path after stitching. Current demo uses real subtitle rendering and provider-ready BGM/TTS extension points.
+- Failure retry Agent for generation errors, including prompt simplification, duration patching, retry limits, and trace recording.
+- Persistent Agent trace records shown on the task detail page.
+- Mock analytics dashboard for generation factors and conversion-effect presentation.
+- Python backend migration path: script generation, video provider, FFmpeg stitching, callback client, and LangGraph video pipeline can run in Python while Node remains the API gateway.
+
+## Python Pipeline Mode
+
+Set these values in `apps/api/.env` and in the environment used to start `pnpm dev:agent`:
+
+```env
+PYTHON_PIPELINE_ENABLED=true
+MODEL_MODE=live
+```
+
+Then start the three services:
+
+```powershell
+pnpm dev:agent
+pnpm dev:api
+pnpm dev:web
+```
+
+In this mode Node keeps the frontend API, Prisma database, upload/static files, task creation, and SSE progress. Python owns the AI workflow: script generation, LangGraph video pipeline, Seedance video calls, retry decisions, FFmpeg stitching, subtitle postprocess, and Agent traces via internal callbacks.
+
+```mermaid
+flowchart LR
+  Web[React Web] --> API[Node Express API]
+  API --> DB[(SQLite / Prisma)]
+  API --> Agent[Python FastAPI Agent]
+  Agent --> Graph[LangGraph Pipeline]
+  Graph --> Seedance[Seedance Video]
+  Graph --> FFmpeg[FFmpeg Stitch/Postprocess]
+  Agent --> API
+```
+
+## P1 Smoke Test
+
+Start the services first:
+
+```powershell
+pnpm dev:api
+pnpm dev:web
+pnpm dev:agent
+```
+
+Run the lightweight smoke test:
+
+```powershell
+.\scripts\smoke-p1.ps1
+```
+
+This checks API health, Python Agent health, product creation, script generation, and editing-plan generation. To run the full paid/slow video path, explicitly add:
+
+```powershell
+.\scripts\smoke-p1.ps1 -RunVideoTask
+```
+
+Known issues and deferred choices are tracked in [`docs/known-issues.md`](docs/known-issues.md).
+
+## P1 Manual Demo Checklist
+
+Use this checklist for a full competition demo after the three services are running:
+
+- Open `http://localhost:5173/materials`.
+- Upload or select product materials, then run material analysis and confirm tags, summaries, and retrieval candidates are shown.
+- Open the creation page, create or select a product, generate a Chinese selling script, and request the Agent editing plan.
+- Start a video task and watch the task progress, shot list, retry trace, and final preview.
+- Edit one shot, regenerate that shot, and confirm the stitched preview is updated.
+- Open the trace panel to review script, planning, retry, stitching, and postprocess events.
+- Open the analytics dashboard and confirm the generation-factor chart and Chinese Agent suggestions are readable.
