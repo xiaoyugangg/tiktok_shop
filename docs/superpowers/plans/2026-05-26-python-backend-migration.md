@@ -1019,7 +1019,7 @@ git commit -m "feat(api): add internal callbacks for python pipeline"
 - Create: `apps/agent/src/agent_app/callbacks.py`
 - Test: `apps/agent/tests/test_pipeline_graph.py`
 
-- [ ] **Step 1: Write callback client unit test with monkeypatch**
+- [x] **Step 1: Write callback client unit test with monkeypatch**
 
 Create `apps/agent/tests/test_pipeline_graph.py`:
 
@@ -1047,7 +1047,7 @@ def test_callback_client_posts_trace(monkeypatch):
     assert calls[0][2]["task_id"] == "t1"
 ```
 
-- [ ] **Step 2: Implement callback client**
+- [x] **Step 2: Implement callback client**
 
 Create `apps/agent/src/agent_app/callbacks.py`:
 
@@ -1136,7 +1136,7 @@ class CallbackClient:
         )
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run:
 
@@ -1152,7 +1152,7 @@ all tests pass
 All checks passed!
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```powershell
 git add apps/agent/src/agent_app/callbacks.py apps/agent/tests/test_pipeline_graph.py
