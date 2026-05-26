@@ -1166,7 +1166,7 @@ git commit -m "feat(agent): add node callback client"
 - Modify: `apps/agent/src/agent_app/main.py`
 - Test: `apps/agent/tests/test_pipeline_graph.py`
 
-- [ ] **Step 1: Add pipeline graph tests**
+- [x] **Step 1: Add pipeline graph tests**
 
 Append to `apps/agent/tests/test_pipeline_graph.py`:
 
@@ -1210,7 +1210,7 @@ def test_pipeline_graph_mock_generates_output(tmp_path: Path):
     assert any(call[0] == "shot" and call[1]["status"] == "video_ok" for call in callback_calls)
 ```
 
-- [ ] **Step 2: Implement Python LangGraph pipeline**
+- [x] **Step 2: Implement Python LangGraph pipeline**
 
 Create `apps/agent/src/agent_app/agents/pipeline_graph.py`:
 
@@ -1435,7 +1435,7 @@ def run_pipeline_graph(req: PipelineRunRequest, callback: object | None = None) 
         return PipelineRunResponse(task_id=req.task_id, status="failed", error_message=msg, trace=[])
 ```
 
-- [ ] **Step 3: Expose Python pipeline endpoint**
+- [x] **Step 3: Expose Python pipeline endpoint**
 
 Modify `apps/agent/src/agent_app/main.py`:
 
@@ -1449,7 +1449,7 @@ def pipeline_run(req: PipelineRunRequest) -> PipelineRunResponse:
     return run_pipeline_graph(req)
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -1466,7 +1466,7 @@ all agent tests pass
 All checks passed!
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/agent/src/agent_app/agents/pipeline_graph.py apps/agent/src/agent_app/main.py apps/agent/tests/test_pipeline_graph.py

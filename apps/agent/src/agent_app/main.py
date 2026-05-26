@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from agent_app.agents.analytics_agent import build_mock_analytics
 from agent_app.agents.editing_agent import build_editing_plan
 from agent_app.agents.material_agent import analyze_material, search_materials
+from agent_app.agents.pipeline_graph import run_pipeline_graph
 from agent_app.agents.retry_agent import decide_retry
 from agent_app.config import settings
 from agent_app.media.postprocess import run_postprocess
@@ -20,6 +21,8 @@ from agent_app.schemas import (
     MaterialAnalyzeResponse,
     MaterialSearchRequest,
     MaterialSearchResponse,
+    PipelineRunRequest,
+    PipelineRunResponse,
     PostprocessRequest,
     PostprocessResponse,
     RetryDecisionRequest,
@@ -69,6 +72,11 @@ def script_generate(req: ScriptGenerateRequest) -> ScriptGenerateResponse:
 @app.post("/video/clip", response_model=ClipGenerateResponse)
 def video_clip(req: ClipGenerateRequest) -> ClipGenerateResponse:
     return generate_clip(req)
+
+
+@app.post("/pipeline/run", response_model=PipelineRunResponse)
+def pipeline_run(req: PipelineRunRequest) -> PipelineRunResponse:
+    return run_pipeline_graph(req)
 
 
 @app.post("/media/postprocess", response_model=PostprocessResponse)
