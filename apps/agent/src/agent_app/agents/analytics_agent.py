@@ -2,7 +2,7 @@ from agent_app.schemas import AnalyticsMetric, AnalyticsRequest, AnalyticsRespon
 
 
 def build_mock_analytics(req: AnalyticsRequest) -> AnalyticsResponse:
-    factors = ["pain-point hook", "scene demo", "benefit subtitles", "clean product close-up"]
+    factors = ["痛点开场", "场景演示", "卖点字幕", "商品特写"]
     metrics = [
         AnalyticsMetric(factor=factors[0], ctr=0.061, cvr=0.027, completion_rate=0.44),
         AnalyticsMetric(factor=factors[1], ctr=0.054, cvr=0.031, completion_rate=0.51),
@@ -13,12 +13,9 @@ def build_mock_analytics(req: AnalyticsRequest) -> AnalyticsResponse:
     return AnalyticsResponse(
         metrics=metrics,
         insights=[
-            "Benefit subtitles show the strongest conversion lift.",
-            "Scene demo improves completion rate and should be used in shot 2.",
-            (
-                f"Next video for {req.product_title or 'this product'} should keep product "
-                "close-up in the first 3 seconds."
-            ),
+            "卖点字幕的转化提升最明显，建议在关键分镜中保留简短有力的利益点表达。",
+            "场景演示能提升完播率，建议放在第 2 个分镜承接开场兴趣。",
+            f"下一条 {req.product_title or '该商品'} 视频建议在前 3 秒保留商品特写，强化真实感和识别度。",
         ],
         trace=[
             TraceItem(
