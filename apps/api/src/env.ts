@@ -16,6 +16,8 @@ const EnvSchema = z.object({
   P1_ENABLE_SUBTITLE: z.coerce.boolean().default(true),
   P1_ENABLE_BGM: z.coerce.boolean().default(false),
   P1_ENABLE_TTS: z.coerce.boolean().default(false),
+  PYTHON_PIPELINE_ENABLED: z.coerce.boolean().default(false),
+  INTERNAL_CALLBACK_TOKEN: z.string().default('dev-callback-token'),
   ARK_API_KEY: z.string().optional(),
   ARK_BASE_URL: z.string().default('https://ark.cn-beijing.volces.com/api/v3'),
   ARK_TEXT_MODEL: z.string().optional(),

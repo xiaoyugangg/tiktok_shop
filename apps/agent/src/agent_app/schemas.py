@@ -163,3 +163,101 @@ class PostprocessResponse(BaseModel):
     output_path: str
     subtitle_path: str | None = None
     trace: list[TraceItem]
+
+
+class ScriptGenerateRequest(BaseModel):
+    product: ProductInput
+    ratio: str = "9:16"
+
+
+class ScriptShotOutput(BaseModel):
+    idx: int
+    description: str
+    camera_motion: str = ""
+    subtitle: str = ""
+    bgm_hint: str = ""
+    duration_sec: int
+
+
+class ScriptGenerateResponse(BaseModel):
+    narrative: str
+    visual_style: str
+    ratio: str
+    shots: list[ScriptShotOutput]
+    constraints: list[str] = Field(default_factory=list)
+    trace: list[TraceItem]
+
+
+class ClipGenerateRequest(BaseModel):
+    prompt: str
+    ratio: str
+    duration_sec: int
+    image_path: str | None = None
+    output_path: str
+
+
+class ClipGenerateResponse(BaseModel):
+    output_path: str
+    trace: list[TraceItem]
+
+
+class PipelineShotInput(BaseModel):
+    id: str
+    idx: int
+    description: str
+    camera_motion: str = ""
+    duration_sec: float
+    prompt: str | None = None
+    subtitle: str | None = None
+    bgm_hint: str | None = None
+    source_material_id: str | None = None
+    source_material_path: str | None = None
+    retry_count: int = 0
+    clip_path: str | None = None
+
+
+class PipelineRunRequest(BaseModel):
+    task_id: str
+    ratio: str
+    storage_root: str
+    product_main_material_path: str | None = None
+    shots: list[PipelineShotInput]
+    enable_subtitle: bool = True
+    enable_bgm: bool = False
+    callback_base_url: str
+    callback_token: str
+
+
+class PipelineRunResponse(BaseModel):
+    task_id: str
+    status: str
+    output_path: str | None = None
+    error_message: str | None = None
+    trace: list[TraceItem]
+
+
+class CallbackTraceRequest(BaseModel):
+    task_id: str
+    shot_id: str | None = None
+    stage: str
+    level: str = "info"
+    message: str
+    payload: dict = Field(default_factory=dict)
+
+
+class CallbackShotStatusRequest(BaseModel):
+    shot_id: str
+    status: str
+    clip_path: str | None = None
+    error_msg: str | None = None
+    prompt: str | None = None
+    duration_sec: float | None = None
+    retry_count_increment: int = 0
+
+
+class CallbackTaskStatusRequest(BaseModel):
+    task_id: str
+    status: str
+    error_msg: str | None = None
+    output_path: str | None = None
+    stage: str | None = None
