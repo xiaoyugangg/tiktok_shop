@@ -2019,7 +2019,7 @@ git commit -m "feat(api): add editing plan endpoint"
 - Modify: `apps/api/src/modules/creation/pipeline.ts`
 - Modify: `apps/api/src/lib/ffmpeg.ts`
 
-- [ ] **Step 1: Add `updateShot` service**
+- [x] **Step 1: Add `updateShot` service**
 
 Add to `task.service.ts`:
 
@@ -2047,7 +2047,7 @@ export async function updateShot(
 
 Import `UpdateShotReq`.
 
-- [ ] **Step 2: Add PATCH route**
+- [x] **Step 2: Add PATCH route**
 
 In `task.router.ts`:
 
@@ -2071,7 +2071,7 @@ taskRouter.patch('/:taskId/shots/:shotId', async (req, res, next) => {
 });
 ```
 
-- [ ] **Step 3: Extract reusable shot generation**
+- [x] **Step 3: Extract reusable shot generation**
 
 In `pipeline.ts`, extract current per-shot logic into:
 
@@ -2095,7 +2095,7 @@ setShotStatus(video_ok)
 return absolute clip path
 ```
 
-- [ ] **Step 4: Add `restitchTask` helper**
+- [x] **Step 4: Add `restitchTask` helper**
 
 In `pipeline.ts`, add:
 
@@ -2112,7 +2112,7 @@ call concatClips
 setTaskStatus(succeeded, outputPath)
 ```
 
-- [ ] **Step 5: Add regenerate route**
+- [x] **Step 5: Add regenerate route**
 
 In `task.router.ts`:
 
@@ -2139,7 +2139,7 @@ taskRouter.post('/:taskId/shots/:shotId/regenerate', async (req, res, next) => {
 
 Export `generateOneShot` and `restitchTask` from `pipeline.ts`.
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run:
 
@@ -2163,7 +2163,7 @@ git commit -m "feat(api): add shot edit and single shot regeneration"
 - Modify: `apps/api/src/modules/task/task.service.ts`
 - Modify: `apps/api/src/modules/trace/trace.service.ts`
 
-- [ ] **Step 1: Add trace calls around shot generation**
+- [x] **Step 1: Add trace calls around shot generation**
 
 In `generateOneShot`, call:
 
@@ -2183,7 +2183,7 @@ After failure:
 await addTrace({ taskId, shotId, stage: 'shot.generate.failed', level: 'error', message: msg });
 ```
 
-- [ ] **Step 2: Add retry call on generation failure**
+- [x] **Step 2: Add retry call on generation failure**
 
 When a shot generation fails and `retryCount < 2`, call:
 
@@ -2214,7 +2214,7 @@ await prisma.shot.update({
 
 Then call `generateOneShot` once more.
 
-- [ ] **Step 3: Record retry trace**
+- [x] **Step 3: Record retry trace**
 
 Always record:
 
@@ -2228,7 +2228,7 @@ await addTrace({
 });
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -2251,7 +2251,7 @@ git commit -m "feat(api): add agent retry decisions to pipeline"
 - Modify: `apps/api/src/modules/creation/pipeline.ts`
 - Modify: `apps/api/src/lib/storage.ts`
 
-- [ ] **Step 1: Build subtitle cues**
+- [x] **Step 1: Build subtitle cues**
 
 After concat creates `output.mp4`, build cues from ordered shots:
 
@@ -2268,7 +2268,7 @@ const subtitles = shots.map((shot) => {
 });
 ```
 
-- [ ] **Step 2: Call Python media postprocess**
+- [x] **Step 2: Call Python media postprocess**
 
 If `env.P1_ENABLE_SUBTITLE || env.P1_ENABLE_BGM`, call:
 
@@ -2288,7 +2288,7 @@ await setTaskStatus({ taskId, status: 'succeeded', outputPath: finalRel, stage: 
 
 If postprocess fails, keep original `output.mp4`, record trace warning, and still mark task succeeded.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run:
 

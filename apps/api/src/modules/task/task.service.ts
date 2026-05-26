@@ -5,7 +5,15 @@ import { publicUrlForRelative } from '../../lib/storage';
 
 import { taskEvents } from './events';
 
-import type { Ratio, Script, ShotDto, ShotStatus, TaskDto, TaskStatus } from '@tiktop/shared';
+import type {
+  Ratio,
+  Script,
+  ShotDto,
+  ShotStatus,
+  TaskDto,
+  TaskStatus,
+  UpdateShotReq,
+} from '@tiktop/shared';
 
 export async function createTask(args: {
   scriptId: string;
@@ -79,6 +87,30 @@ export async function setTaskStatus(args: {
   });
 }
 
+export async function updateShot(
+  taskId: string,
+  shotId: string,
+  patch: UpdateShotReq,
+): Promise<TaskDto | null> {
+  const shot = await prisma.shot.findFirst({ where: { id: shotId, taskId } });
+  if (!shot) return null;
+
+  await prisma.shot.update({
+    where: { id: shot.id },
+    data: {
+      description: patch.description,
+      cameraMotion: patch.cameraMotion,
+      prompt: patch.prompt,
+      subtitle: patch.subtitle,
+      bgmHint: patch.bgmHint,
+      durationSec: patch.durationSec,
+      sourceMaterialId: patch.sourceMaterialId,
+    },
+  });
+
+  return getTaskDto(taskId);
+}
+
 export async function setShotStatus(args: {
   shotId: string;
   status: ShotStatus;
@@ -92,7 +124,7 @@ export async function setShotStatus(args: {
       status: args.status,
       imagePath: args.imagePath ?? undefined,
       clipPath: args.clipPath ?? undefined,
-      errorMsg: args.errorMsg ?? undefined,
+      errorMsg: args.errorMsg ?? (args.status === 'video_ok' ? null : undefined),
     },
   });
   const task = await prisma.videoTask.findUnique({ where: { id: shot.taskId } });

@@ -35,6 +35,22 @@ export interface EditingPlanResponse {
   trace: AgentTraceItem[];
 }
 
+export interface RetryDecisionResponse {
+  should_retry: boolean;
+  reason: string;
+  patch?: {
+    prompt?: string | null;
+    duration_sec?: number | null;
+  };
+  trace: AgentTraceItem[];
+}
+
+export interface PostprocessResponse {
+  output_path: string;
+  subtitle_path?: string | null;
+  trace: AgentTraceItem[];
+}
+
 export async function callAgent<TResponse>(
   path: string,
   body?: unknown,
