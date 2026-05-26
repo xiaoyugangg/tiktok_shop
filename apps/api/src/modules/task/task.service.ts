@@ -140,6 +140,39 @@ export async function setShotStatus(args: {
   });
 }
 
+export async function updateShotFromPipeline(args: {
+  shotId: string;
+  status: ShotStatus;
+  clipPath?: string | null;
+  errorMsg?: string | null;
+  prompt?: string | null;
+  durationSec?: number | null;
+  retryCountIncrement?: number;
+}): Promise<void> {
+  const shot = await prisma.shot.update({
+    where: { id: args.shotId },
+    data: {
+      status: args.status,
+      clipPath: args.clipPath ?? undefined,
+      errorMsg: args.errorMsg ?? (args.status === 'video_ok' ? null : undefined),
+      prompt: args.prompt ?? undefined,
+      durationSec: args.durationSec ?? undefined,
+      retryCount: args.retryCountIncrement ? { increment: args.retryCountIncrement } : undefined,
+    },
+  });
+  const task = await prisma.videoTask.findUnique({ where: { id: shot.taskId } });
+  if (!task) return;
+  const shotsTotal = await prisma.shot.count({ where: { taskId: shot.taskId } });
+  const shotsDone = await prisma.shot.count({
+    where: { taskId: shot.taskId, status: 'video_ok' },
+  });
+  emitTaskEvent(task.id, task.status as TaskStatus, {
+    shotsTotal,
+    shotsDone,
+    stage: `shot ${shot.idx + 1} -> ${args.status}`,
+  });
+}
+
 function emitTaskEvent(
   taskId: string,
   status: TaskStatus,

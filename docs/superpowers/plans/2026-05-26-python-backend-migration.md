@@ -847,7 +847,7 @@ git commit -m "feat(agent): move video provider and ffmpeg tools to python"
 - Modify: `apps/api/src/modules/task/task.service.ts`
 - Modify: `apps/api/src/modules/trace/trace.service.ts`
 
-- [ ] **Step 1: Add task service helpers for callback updates**
+- [x] **Step 1: Add task service helpers for callback updates**
 
 Add to `apps/api/src/modules/task/task.service.ts`:
 
@@ -875,7 +875,7 @@ export async function updateShotFromPipeline(args: {
 }
 ```
 
-- [ ] **Step 2: Create internal router**
+- [x] **Step 2: Create internal router**
 
 Create `apps/api/src/modules/internal/internal.router.ts`:
 
@@ -980,7 +980,7 @@ internalRouter.post('/tasks/status', async (req, res, next) => {
 });
 ```
 
-- [ ] **Step 3: Mount internal router**
+- [x] **Step 3: Mount internal router**
 
 Modify `apps/api/src/app.ts`:
 
@@ -990,7 +990,7 @@ import { internalRouter } from './modules/internal/internal.router';
 app.use('/api/internal', internalRouter);
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -1006,7 +1006,7 @@ typecheck passes
 lint passes
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/api/src/modules/internal apps/api/src/app.ts apps/api/src/modules/task/task.service.ts
