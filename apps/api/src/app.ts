@@ -11,6 +11,7 @@ import { materialRouter } from './modules/material/material.router';
 import { productRouter } from './modules/product/product.router';
 import { scriptRouter } from './modules/script/script.router';
 import { taskRouter } from './modules/task/task.router';
+import { traceRouter } from './modules/trace/trace.router';
 
 export function createApp() {
   const app = express();
@@ -40,6 +41,7 @@ export function createApp() {
   app.use('/api/products', productRouter);
   app.use('/api/scripts', scriptRouter);
   app.use('/api/tasks', taskRouter);
+  app.use('/api', traceRouter);
 
   app.use((req, res) => {
     res.status(404).json({ message: `route ${req.path} not found` });

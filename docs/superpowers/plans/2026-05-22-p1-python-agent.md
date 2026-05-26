@@ -1717,7 +1717,7 @@ git commit -m "feat(shared): add p1 data model and dto fields"
 - Create: `apps/api/src/modules/trace/trace.router.ts`
 - Modify: `apps/api/src/app.ts`
 
-- [ ] **Step 1: Create trace service**
+- [x] **Step 1: Create trace service**
 
 Create:
 
@@ -1764,7 +1764,7 @@ export async function listTrace(taskId: string): Promise<TraceDto[]> {
 }
 ```
 
-- [ ] **Step 2: Create trace router**
+- [x] **Step 2: Create trace router**
 
 Create:
 
@@ -1784,7 +1784,7 @@ traceRouter.get('/tasks/:taskId/trace', async (req, res, next) => {
 });
 ```
 
-- [ ] **Step 3: Mount router**
+- [x] **Step 3: Mount router**
 
 Modify `app.ts`:
 
@@ -1794,7 +1794,7 @@ import { traceRouter } from './modules/trace/trace.router';
 app.use('/api', traceRouter);
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
