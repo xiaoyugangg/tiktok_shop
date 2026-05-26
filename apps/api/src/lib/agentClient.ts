@@ -51,6 +51,22 @@ export interface PostprocessResponse {
   trace: AgentTraceItem[];
 }
 
+export interface ScriptGenerateResponse {
+  narrative: string;
+  visual_style: string;
+  ratio: '9:16' | '16:9';
+  shots: Array<{
+    idx: number;
+    description: string;
+    camera_motion: string;
+    subtitle: string;
+    bgm_hint: string;
+    duration_sec: number;
+  }>;
+  constraints: string[];
+  trace: AgentTraceItem[];
+}
+
 export async function callAgent<TResponse>(
   path: string,
   body?: unknown,

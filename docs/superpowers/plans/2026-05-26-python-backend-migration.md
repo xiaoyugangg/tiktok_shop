@@ -274,7 +274,7 @@ git commit -m "feat(agent): add python migration schemas"
 - Modify: `apps/api/src/modules/script/script.service.ts`
 - Test: `apps/agent/tests/test_ark_text.py`
 
-- [ ] **Step 1: Write Python text provider test**
+- [x] **Step 1: Write Python text provider test**
 
 Create `apps/agent/tests/test_ark_text.py`:
 
@@ -298,7 +298,7 @@ def test_generate_script_mock_returns_three_shots():
     assert result.trace[0].stage == "model.script.mock"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run:
 
@@ -313,7 +313,7 @@ Expected:
 ModuleNotFoundError: No module named 'agent_app.providers'
 ```
 
-- [ ] **Step 3: Implement Python text provider**
+- [x] **Step 3: Implement Python text provider**
 
 Create `apps/agent/src/agent_app/providers/__init__.py` as an empty file.
 
@@ -422,7 +422,7 @@ def generate_script(req: ScriptGenerateRequest) -> ScriptGenerateResponse:
     raise RuntimeError(f"script generation failed: {last_error}")
 ```
 
-- [ ] **Step 4: Expose Python script endpoint**
+- [x] **Step 4: Expose Python script endpoint**
 
 Modify `apps/agent/src/agent_app/main.py` imports:
 
@@ -439,7 +439,7 @@ def script_generate(req: ScriptGenerateRequest) -> ScriptGenerateResponse:
     return generate_script(req)
 ```
 
-- [ ] **Step 5: Add Node response type**
+- [x] **Step 5: Add Node response type**
 
 Modify `apps/api/src/lib/agentClient.ts`:
 
@@ -461,7 +461,7 @@ export interface ScriptGenerateResponse {
 }
 ```
 
-- [ ] **Step 6: Route script service through Python with fallback**
+- [x] **Step 6: Route script service through Python with fallback**
 
 Modify `apps/api/src/modules/script/script.service.ts`:
 
@@ -514,7 +514,7 @@ try {
 
 Keep the Node provider import as fallback for this task.
 
-- [ ] **Step 7: Verify**
+- [x] **Step 7: Verify**
 
 Run:
 
@@ -532,7 +532,7 @@ typecheck passes
 lint passes
 ```
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add apps/agent/src/agent_app/providers apps/agent/src/agent_app/main.py apps/agent/tests/test_ark_text.py apps/api/src/lib/agentClient.ts apps/api/src/modules/script/script.service.ts

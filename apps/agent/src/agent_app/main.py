@@ -6,6 +6,7 @@ from agent_app.agents.material_agent import analyze_material, search_materials
 from agent_app.agents.retry_agent import decide_retry
 from agent_app.config import settings
 from agent_app.media.postprocess import run_postprocess
+from agent_app.providers.ark_text import generate_script
 from agent_app.schemas import (
     AnalyticsRequest,
     AnalyticsResponse,
@@ -20,6 +21,8 @@ from agent_app.schemas import (
     PostprocessResponse,
     RetryDecisionRequest,
     RetryDecisionResponse,
+    ScriptGenerateRequest,
+    ScriptGenerateResponse,
 )
 
 app = FastAPI(title="TikTop P1 Agent Service")
@@ -53,6 +56,11 @@ def retry_decide(req: RetryDecisionRequest) -> RetryDecisionResponse:
 @app.post("/analytics/mock", response_model=AnalyticsResponse)
 def analytics_mock(req: AnalyticsRequest) -> AnalyticsResponse:
     return build_mock_analytics(req)
+
+
+@app.post("/scripts/generate", response_model=ScriptGenerateResponse)
+def script_generate(req: ScriptGenerateRequest) -> ScriptGenerateResponse:
+    return generate_script(req)
 
 
 @app.post("/media/postprocess", response_model=PostprocessResponse)
