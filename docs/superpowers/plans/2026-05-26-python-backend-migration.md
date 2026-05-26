@@ -548,7 +548,7 @@ git commit -m "feat(agent): move script generation to python"
 - Test: `apps/agent/tests/test_seedance_video.py`
 - Test: `apps/agent/tests/test_ffmpeg_tools.py`
 
-- [ ] **Step 1: Write video provider tests**
+- [x] **Step 1: Write video provider tests**
 
 Create `apps/agent/tests/test_seedance_video.py`:
 
@@ -597,7 +597,7 @@ def test_concat_clips_creates_output(tmp_path: Path):
     assert out.exists()
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run:
 
@@ -612,7 +612,7 @@ Expected:
 ModuleNotFoundError for seedance_video and ffmpeg_tools
 ```
 
-- [ ] **Step 3: Implement FFmpeg tools**
+- [x] **Step 3: Implement FFmpeg tools**
 
 Create `apps/agent/src/agent_app/media/ffmpeg_tools.py`:
 
@@ -713,7 +713,7 @@ def concat_clips(clip_paths: list[str], out_path: str, ratio: str) -> None:
     )
 ```
 
-- [ ] **Step 4: Implement Seedance provider**
+- [x] **Step 4: Implement Seedance provider**
 
 Create `apps/agent/src/agent_app/providers/seedance_video.py`:
 
@@ -802,7 +802,7 @@ def generate_clip(req: ClipGenerateRequest) -> ClipGenerateResponse:
     )
 ```
 
-- [ ] **Step 5: Expose clip endpoint**
+- [x] **Step 5: Expose clip endpoint**
 
 Modify `apps/agent/src/agent_app/main.py`:
 
@@ -816,7 +816,7 @@ def video_clip(req: ClipGenerateRequest) -> ClipGenerateResponse:
     return generate_clip(req)
 ```
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run:
 
@@ -832,7 +832,7 @@ all tests pass
 All checks passed!
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add apps/agent/src/agent_app/providers/seedance_video.py apps/agent/src/agent_app/media/ffmpeg_tools.py apps/agent/src/agent_app/main.py apps/agent/tests/test_seedance_video.py apps/agent/tests/test_ffmpeg_tools.py

@@ -7,9 +7,12 @@ from agent_app.agents.retry_agent import decide_retry
 from agent_app.config import settings
 from agent_app.media.postprocess import run_postprocess
 from agent_app.providers.ark_text import generate_script
+from agent_app.providers.seedance_video import generate_clip
 from agent_app.schemas import (
     AnalyticsRequest,
     AnalyticsResponse,
+    ClipGenerateRequest,
+    ClipGenerateResponse,
     EditingPlanRequest,
     EditingPlanResponse,
     HealthResponse,
@@ -61,6 +64,11 @@ def analytics_mock(req: AnalyticsRequest) -> AnalyticsResponse:
 @app.post("/scripts/generate", response_model=ScriptGenerateResponse)
 def script_generate(req: ScriptGenerateRequest) -> ScriptGenerateResponse:
     return generate_script(req)
+
+
+@app.post("/video/clip", response_model=ClipGenerateResponse)
+def video_clip(req: ClipGenerateRequest) -> ClipGenerateResponse:
+    return generate_clip(req)
 
 
 @app.post("/media/postprocess", response_model=PostprocessResponse)
