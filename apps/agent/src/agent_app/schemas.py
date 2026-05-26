@@ -101,3 +101,65 @@ class EditingPlanResponse(BaseModel):
     shots: list[PlannedShot]
     strategy: str
     trace: list[TraceItem]
+
+
+class RetryDecisionRequest(BaseModel):
+    task_id: str
+    shot_id: str | None = None
+    shot_idx: int | None = None
+    error_message: str
+    retry_count: int = 0
+    prompt: str = ""
+    duration_sec: int = 5
+
+
+class RetryPatch(BaseModel):
+    prompt: str | None = None
+    duration_sec: int | None = None
+
+
+class RetryDecisionResponse(BaseModel):
+    should_retry: bool
+    reason: str
+    patch: RetryPatch = Field(default_factory=RetryPatch)
+    trace: list[TraceItem]
+
+
+class AnalyticsMetric(BaseModel):
+    factor: str
+    ctr: float
+    cvr: float
+    completion_rate: float
+
+
+class AnalyticsRequest(BaseModel):
+    product_title: str | None = None
+    task_count: int = 8
+
+
+class AnalyticsResponse(BaseModel):
+    metrics: list[AnalyticsMetric]
+    insights: list[str]
+    trace: list[TraceItem]
+
+
+class SubtitleCue(BaseModel):
+    start_sec: float
+    end_sec: float
+    text: str
+
+
+class PostprocessRequest(BaseModel):
+    input_path: str
+    output_path: str
+    ratio: str
+    subtitles: list[SubtitleCue] = Field(default_factory=list)
+    bgm_path: str | None = None
+    enable_subtitle: bool = True
+    enable_bgm: bool = False
+
+
+class PostprocessResponse(BaseModel):
+    output_path: str
+    subtitle_path: str | None = None
+    trace: list[TraceItem]

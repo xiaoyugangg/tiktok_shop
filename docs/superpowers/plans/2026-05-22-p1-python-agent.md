@@ -1078,7 +1078,7 @@ git commit -m "feat(agent): add langgraph editing runtime"
 - Modify: `apps/agent/src/agent_app/main.py`
 - Test: `apps/agent/tests/test_retry_agent.py`
 
-- [ ] **Step 1: Add retry schemas**
+- [x] **Step 1: Add retry schemas**
 
 Extend `schemas.py`:
 
@@ -1105,7 +1105,7 @@ class RetryDecisionResponse(BaseModel):
     trace: list[TraceItem]
 ```
 
-- [ ] **Step 2: Write retry tests**
+- [x] **Step 2: Write retry tests**
 
 Create `tests/test_retry_agent.py`:
 
@@ -1143,7 +1143,7 @@ def test_retry_decision_stops_after_two_retries():
     assert decision.should_retry is False
 ```
 
-- [ ] **Step 3: Implement retry agent**
+- [x] **Step 3: Implement retry agent**
 
 Create `agents/retry_agent.py`:
 
@@ -1188,7 +1188,7 @@ def decide_retry(req: RetryDecisionRequest) -> RetryDecisionResponse:
     )
 ```
 
-- [ ] **Step 4: Expose endpoint**
+- [x] **Step 4: Expose endpoint**
 
 Modify `main.py`:
 
@@ -1202,7 +1202,7 @@ def retry_decide(req: RetryDecisionRequest) -> RetryDecisionResponse:
     return decide_retry(req)
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -1232,7 +1232,7 @@ git commit -m "feat(agent): add retry decision agent"
 - Modify: `apps/agent/src/agent_app/main.py`
 - Test: `apps/agent/tests/test_analytics_agent.py`
 
-- [ ] **Step 1: Add analytics schemas**
+- [x] **Step 1: Add analytics schemas**
 
 Extend `schemas.py`:
 
@@ -1255,7 +1255,7 @@ class AnalyticsResponse(BaseModel):
     trace: list[TraceItem]
 ```
 
-- [ ] **Step 2: Write analytics test**
+- [x] **Step 2: Write analytics test**
 
 Create `tests/test_analytics_agent.py`:
 
@@ -1271,7 +1271,7 @@ def test_mock_analytics_returns_metrics_and_insights():
     assert result.trace[0].stage == "agent.analytics.mock"
 ```
 
-- [ ] **Step 3: Implement deterministic analytics**
+- [x] **Step 3: Implement deterministic analytics**
 
 Create `agents/analytics_agent.py`:
 
@@ -1304,7 +1304,7 @@ def build_mock_analytics(req: AnalyticsRequest) -> AnalyticsResponse:
     )
 ```
 
-- [ ] **Step 4: Expose endpoint**
+- [x] **Step 4: Expose endpoint**
 
 Modify `main.py`:
 
@@ -1318,7 +1318,7 @@ def analytics_mock(req: AnalyticsRequest) -> AnalyticsResponse:
     return build_mock_analytics(req)
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -1348,7 +1348,7 @@ git commit -m "feat(agent): add mock analytics agent"
 - Modify: `apps/agent/src/agent_app/main.py`
 - Test: `apps/agent/tests/test_postprocess.py`
 
-- [ ] **Step 1: Add media schemas**
+- [x] **Step 1: Add media schemas**
 
 Extend `schemas.py`:
 
@@ -1375,7 +1375,7 @@ class PostprocessResponse(BaseModel):
     trace: list[TraceItem]
 ```
 
-- [ ] **Step 2: Write ASS generation test**
+- [x] **Step 2: Write ASS generation test**
 
 Create `tests/test_postprocess.py`:
 
@@ -1390,7 +1390,7 @@ def test_build_ass_text_contains_subtitle():
     assert "立即下单" in text
 ```
 
-- [ ] **Step 3: Implement postprocess module**
+- [x] **Step 3: Implement postprocess module**
 
 Create `media/postprocess.py`:
 
@@ -1461,7 +1461,7 @@ def run_postprocess(req: PostprocessRequest) -> PostprocessResponse:
     return PostprocessResponse(output_path=str(output), subtitle_path=subtitle_path, trace=trace)
 ```
 
-- [ ] **Step 4: Expose endpoint**
+- [x] **Step 4: Expose endpoint**
 
 Modify `main.py`:
 
@@ -1475,7 +1475,7 @@ def media_postprocess(req: PostprocessRequest) -> PostprocessResponse:
     return run_postprocess(req)
 ```
 
-- [ ] **Step 5: Verify ASS test**
+- [x] **Step 5: Verify ASS test**
 
 Run:
 
