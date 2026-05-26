@@ -76,7 +76,7 @@ def run_postprocess(req: PostprocessRequest) -> PostprocessResponse:
         trace.append(TraceItem(stage="media.bgm", message="Mixed BGM audio"))
     else:
         args.extend(vf_args)
-        args.extend(["-c:v", "libx264", "-an"])
+        args.extend(["-map", "0:v:0", "-map", "0:a?", "-c:v", "libx264", "-c:a", "copy"])
 
     args.extend(["-pix_fmt", "yuv420p", "-movflags", "+faststart", str(output)])
     subprocess.run(args, check=True)

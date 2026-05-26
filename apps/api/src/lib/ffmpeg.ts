@@ -46,6 +46,49 @@ function runFfmpeg(args: string[], stage: string): Promise<void> {
   });
 }
 
+function ffprobeValue(args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('ffprobe', ['-v', 'error', ...args], { windowsHide: true });
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+    proc.stdout.on('data', (b: Buffer) => stdoutChunks.push(b));
+    proc.stderr.on('data', (b: Buffer) => stderrChunks.push(b));
+    proc.on('error', (err) => reject(err));
+    proc.on('close', (code) => {
+      if (code === 0) {
+        resolve(Buffer.concat(stdoutChunks).toString('utf8').trim());
+        return;
+      }
+      reject(new Error(Buffer.concat(stderrChunks).toString('utf8').trim()));
+    });
+  });
+}
+
+async function hasAudioStream(clipPath: string): Promise<boolean> {
+  const value = await ffprobeValue([
+    '-select_streams',
+    'a',
+    '-show_entries',
+    'stream=codec_type',
+    '-of',
+    'csv=p=0',
+    clipPath,
+  ]);
+  return value.length > 0;
+}
+
+async function durationSeconds(clipPath: string): Promise<number> {
+  const value = await ffprobeValue([
+    '-show_entries',
+    'format=duration',
+    '-of',
+    'default=nw=1:nk=1',
+    clipPath,
+  ]);
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0.1, parsed) : 1;
+}
+
 export interface MockClipParams {
   outPath: string;
   durationSec: number;
@@ -107,15 +150,29 @@ export async function concatClips(params: ConcatParams): Promise<void> {
     inputs.push('-i', clip);
   }
 
-  const filterInputs = params.clipPaths
-    .map(
-      (_, i) =>
-        `[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,` +
+  const filterParts: string[] = [];
+  for (const [i, clipPath] of params.clipPaths.entries()) {
+    filterParts.push(
+      `[${i}:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,` +
         `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps=24[v${i}]`,
-    )
-    .join(';');
-  const concatInputs = params.clipPaths.map((_, i) => `[v${i}]`).join('');
-  const filterGraph = `${filterInputs};${concatInputs}concat=n=${params.clipPaths.length}:v=1:a=0[outv]`;
+    );
+    if (await hasAudioStream(clipPath)) {
+      filterParts.push(
+        `[${i}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo[a${i}]`,
+      );
+    } else {
+      const duration = await durationSeconds(clipPath);
+      filterParts.push(
+        `anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration=${duration.toFixed(
+          3,
+        )},asetpts=PTS-STARTPTS[a${i}]`,
+      );
+    }
+  }
+  const concatInputs = params.clipPaths.map((_, i) => `[v${i}][a${i}]`).join('');
+  const filterGraph = `${filterParts.join(';')};${concatInputs}concat=n=${
+    params.clipPaths.length
+  }:v=1:a=1[outv][outa]`;
 
   const args = [
     '-y',
@@ -127,8 +184,12 @@ export async function concatClips(params: ConcatParams): Promise<void> {
     filterGraph,
     '-map',
     '[outv]',
+    '-map',
+    '[outa]',
     '-c:v',
     'libx264',
+    '-c:a',
+    'aac',
     '-pix_fmt',
     'yuv420p',
     '-preset',
