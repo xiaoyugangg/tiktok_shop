@@ -7,6 +7,7 @@ import { env } from './env';
 import { logger } from './lib/logger';
 import { STORAGE_ROOT } from './lib/storage';
 import { agentRouter } from './modules/agent/agent.router';
+import { analyticsRouter } from './modules/analytics/analytics.router';
 import { materialRouter } from './modules/material/material.router';
 import { productRouter } from './modules/product/product.router';
 import { scriptRouter } from './modules/script/script.router';
@@ -37,6 +38,7 @@ export function createApp() {
   });
 
   app.use('/api/agent', agentRouter);
+  app.use('/api/analytics', analyticsRouter);
   app.use('/api/materials', materialRouter);
   app.use('/api/products', productRouter);
   app.use('/api/scripts', scriptRouter);

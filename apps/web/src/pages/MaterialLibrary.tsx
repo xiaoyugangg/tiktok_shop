@@ -15,11 +15,11 @@ import {
 } from 'antd';
 import { useState } from 'react';
 
-import { deleteMaterial, listMaterials, uploadMaterial } from '../api/material';
+import { analyzeMaterial, deleteMaterial, listMaterials, uploadMaterial } from '../api/material';
 
 import type { UploadProps } from 'antd';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { Dragger } = Upload;
 
 export function MaterialLibraryPage() {
@@ -36,6 +36,15 @@ export function MaterialLibraryPage() {
     mutationFn: deleteMaterial,
     onSuccess: () => {
       message.success('已删除');
+      queryClient.invalidateQueries({ queryKey: ['materials'] });
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+
+  const analyzeMutation = useMutation({
+    mutationFn: analyzeMaterial,
+    onSuccess: () => {
+      message.success('Agent analysis complete');
       queryClient.invalidateQueries({ queryKey: ['materials'] });
     },
     onError: (err: Error) => message.error(err.message),
@@ -105,6 +114,15 @@ export function MaterialLibraryPage() {
                   )
                 }
                 actions={[
+                  <Button
+                    key="analyze"
+                    type="text"
+                    loading={analyzeMutation.isPending && analyzeMutation.variables === m.id}
+                    disabled={analyzeMutation.isPending}
+                    onClick={() => analyzeMutation.mutate(m.id)}
+                  >
+                    Analyze
+                  </Button>,
                   <Popconfirm
                     key="del"
                     title="删除该素材？"
@@ -123,11 +141,26 @@ export function MaterialLibraryPage() {
                     </Text>
                   }
                   description={
-                    <Space size={4} wrap>
-                      <Tag color={m.kind === 'image' ? 'blue' : 'purple'}>{m.kind}</Tag>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        {(m.size / 1024).toFixed(1)} KB
-                      </Text>
+                    <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                      <Space size={4} wrap>
+                        <Tag color={m.kind === 'image' ? 'blue' : 'purple'}>{m.kind}</Tag>
+                        {m.analyzedAt && <Tag color="green">Agent</Tag>}
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {(m.size / 1024).toFixed(1)} KB
+                        </Text>
+                      </Space>
+                      {m.summary && (
+                        <Paragraph ellipsis={{ rows: 2 }} style={{ marginBottom: 0, fontSize: 12 }}>
+                          {m.summary}
+                        </Paragraph>
+                      )}
+                      {!!m.tags?.length && (
+                        <Space size={[4, 4]} wrap>
+                          {m.tags.slice(0, 8).map((tag) => (
+                            <Tag key={tag}>{tag}</Tag>
+                          ))}
+                        </Space>
+                      )}
                     </Space>
                   }
                 />

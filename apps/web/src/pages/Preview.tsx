@@ -15,21 +15,21 @@ export function PreviewPage() {
     enabled: !!id,
   });
 
-  if (!id) return <Empty description="任务 ID 缺失" />;
+  if (!id) return <Empty description="Task id missing" />;
   if (query.isLoading) return <Card loading />;
   if (query.error) return <Alert type="error" message={(query.error as Error).message} />;
   const task = query.data;
-  if (!task) return <Empty description="任务不存在" />;
+  if (!task) return <Empty description="Task not found" />;
 
   if (task.status !== 'succeeded' || !task.outputUrl) {
     return (
       <Alert
         type="warning"
         showIcon
-        message="视频尚未生成完成"
+        message="Video is not ready"
         description={
           <Link to={`/tasks/${task.id}`}>
-            <Button type="primary">回到任务详情</Button>
+            <Button type="primary">Back to task</Button>
           </Link>
         }
       />
@@ -43,13 +43,16 @@ export function PreviewPage() {
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <div>
         <Title level={3} style={{ marginBottom: 4 }}>
-          预览与导出
+          Preview and Export
         </Title>
-        <Space size={8}>
-          <Tag color="success">已完成</Tag>
+        <Space size={8} wrap>
+          <Tag color="success">Completed</Tag>
+          <Tag color="blue">Agent enhanced</Tag>
+          <Tag color="purple">P1 postprocess video</Tag>
+          <Tag color="green">Subtitle ready</Tag>
           <Tag>{task.ratio}</Tag>
           <Tag>{totalDuration.toFixed(1)}s</Tag>
-          <Tag>{task.shots.length} 个分镜</Tag>
+          <Tag>{task.shots.length} shots</Tag>
         </Space>
       </div>
 
@@ -69,26 +72,26 @@ export function PreviewPage() {
 
       <Space>
         <Button type="primary" icon={<DownloadOutlined />} href={downloadUrl}>
-          下载 MP4
+          Download MP4
         </Button>
         <Link to={`/tasks/${task.id}`}>
-          <Button>返回任务详情</Button>
+          <Button>Back to task</Button>
         </Link>
         <Link to="/new">
-          <Button>新建另一个视频</Button>
+          <Button>Create another</Button>
         </Link>
       </Space>
 
-      <Card title="任务信息" size="small">
+      <Card title="Task Info" size="small">
         <Descriptions size="small" column={1}>
-          <Descriptions.Item label="任务 ID">{task.id}</Descriptions.Item>
-          <Descriptions.Item label="剧本 ID">{task.scriptId}</Descriptions.Item>
-          <Descriptions.Item label="商品 ID">{task.productId}</Descriptions.Item>
-          <Descriptions.Item label="创建时间">
-            {new Date(task.createdAt).toLocaleString('zh-CN')}
+          <Descriptions.Item label="Task ID">{task.id}</Descriptions.Item>
+          <Descriptions.Item label="Script ID">{task.scriptId}</Descriptions.Item>
+          <Descriptions.Item label="Product ID">{task.productId}</Descriptions.Item>
+          <Descriptions.Item label="Created At">
+            {new Date(task.createdAt).toLocaleString()}
           </Descriptions.Item>
-          <Descriptions.Item label="完成时间">
-            {new Date(task.updatedAt).toLocaleString('zh-CN')}
+          <Descriptions.Item label="Updated At">
+            {new Date(task.updatedAt).toLocaleString()}
           </Descriptions.Item>
         </Descriptions>
       </Card>

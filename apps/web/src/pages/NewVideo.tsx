@@ -1,14 +1,15 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { App, Button, Card, Form, Input, Radio, Select, Space, Steps, Tag, Typography } from 'antd';
+import { App, Alert, Button, Card, Form, Input, Radio, Select, Space, Steps, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { listMaterials } from '../api/material';
 import { createProduct, listProducts } from '../api/product';
-import { generateScript } from '../api/script';
+import { createEditingPlan, generateScript } from '../api/script';
+import { startVideoTask } from '../api/task';
 import { ScriptBoard } from '../components/ScriptBoard';
 
-import type { Ratio, ScriptDto } from '@tiktop/shared';
+import type { EditingPlanDto, Ratio, ScriptDto } from '@tiktop/shared';
 
 const { Title, Text } = Typography;
 
@@ -27,6 +28,7 @@ export function NewVideoPage() {
   const [form] = Form.useForm<FormValues>();
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [script, setScript] = useState<ScriptDto | null>(null);
+  const [editingPlan, setEditingPlan] = useState<EditingPlanDto | null>(null);
 
   const { data: materials = [] } = useQuery({
     queryKey: ['materials'],
@@ -51,22 +53,33 @@ export function NewVideoPage() {
     },
     onSuccess: (dto) => {
       setScript(dto);
+      setEditingPlan(null);
       setStep(1);
-      message.success('剧本生成成功');
+      message.success('Script generated');
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+
+  const editingPlanMutation = useMutation({
+    mutationFn: async () => {
+      if (!script) throw new Error('Please generate script first');
+      return createEditingPlan(script.id);
+    },
+    onSuccess: (plan) => {
+      setEditingPlan(plan);
+      message.success('Agent editing plan ready');
     },
     onError: (err: Error) => message.error(err.message),
   });
 
   const startTaskMutation = useMutation({
     mutationFn: async () => {
-      if (!script) throw new Error('请先生成剧本');
+      if (!script) throw new Error('Please generate script first');
       const ratio = form.getFieldValue('ratio') as Ratio;
-      const { startVideoTask } = await import('../api/task');
-      const task = await startVideoTask({ scriptId: script.id, ratio });
-      return task;
+      return startVideoTask({ scriptId: script.id, ratio });
     },
     onSuccess: (task) => {
-      message.success('已启动一键成片');
+      message.success('Video task started');
       setStep(2);
       navigate(`/tasks/${task.id}`);
     },
@@ -77,14 +90,14 @@ export function NewVideoPage() {
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <div>
         <Title level={3} style={{ marginBottom: 4 }}>
-          新建视频
+          New Video
         </Title>
-        <Text type="secondary">填商品信息 → 生成剧本 → 一键成片(≤15 秒)</Text>
+        <Text type="secondary">Fill product info, generate a script, then start the video task.</Text>
       </div>
 
       <Steps
         current={step}
-        items={[{ title: '商品信息' }, { title: '剧本预览' }, { title: '生成视频' }]}
+        items={[{ title: 'Product' }, { title: 'Script' }, { title: 'Video' }]}
       />
 
       <Card>
@@ -95,39 +108,39 @@ export function NewVideoPage() {
           onFinish={(v) => generateMutation.mutate(v)}
           disabled={step !== 0}
         >
-          <Form.Item name="title" label="商品标题" rules={[{ required: true, max: 80 }]}>
-            <Input placeholder="例:轻薄无线降噪耳机" />
+          <Form.Item name="title" label="Product title" rules={[{ required: true, max: 80 }]}>
+            <Input placeholder="Wireless noise cancelling earbuds" />
           </Form.Item>
           <Form.Item
             name="sellingPoints"
-            label="核心卖点 (回车确认,3-5 条最佳)"
+            label="Selling points"
             rules={[{ required: true, type: 'array', min: 1, max: 8 }]}
           >
             <Select
               mode="tags"
-              placeholder="输入卖点后按回车,如:主动降噪、续航 30h、人体工学"
-              tokenSeparators={[',', '，']}
+              placeholder="Press Enter after each selling point"
+              tokenSeparators={[',', ';']}
             />
           </Form.Item>
-          <Form.Item name="targetAudience" label="目标人群">
-            <Input placeholder="例:18-30 岁通勤白领" />
+          <Form.Item name="targetAudience" label="Target audience">
+            <Input placeholder="Commuters, office workers, students" />
           </Form.Item>
-          <Form.Item name="scene" label="使用场景">
-            <Input placeholder="例:地铁通勤 / 居家办公" />
+          <Form.Item name="scene" label="Use scene">
+            <Input placeholder="Commute, home office, gym" />
           </Form.Item>
-          <Form.Item name="mainMaterialId" label="商品主图 (可选)">
+          <Form.Item name="mainMaterialId" label="Main product image">
             <Select
               allowClear
-              placeholder="从素材库选择,留空则模型自动构图"
+              placeholder="Choose an image material"
               options={materials
                 .filter((m) => m.kind === 'image')
                 .map((m) => ({ value: m.id, label: m.filename }))}
             />
           </Form.Item>
-          <Form.Item name="ratio" label="画幅">
+          <Form.Item name="ratio" label="Ratio">
             <Radio.Group>
-              <Radio.Button value="9:16">9:16 竖版</Radio.Button>
-              <Radio.Button value="16:9">16:9 横版</Radio.Button>
+              <Radio.Button value="9:16">9:16 vertical</Radio.Button>
+              <Radio.Button value="16:9">16:9 horizontal</Radio.Button>
             </Radio.Group>
           </Form.Item>
           <Form.Item>
@@ -138,9 +151,9 @@ export function NewVideoPage() {
                 loading={generateMutation.isPending}
                 disabled={step !== 0}
               >
-                生成剧本
+                Generate Script
               </Button>
-              {products.length > 0 && <Text type="secondary">已创建商品 {products.length} 个</Text>}
+              {products.length > 0 && <Text type="secondary">{products.length} products saved</Text>}
             </Space>
           </Form.Item>
         </Form>
@@ -150,7 +163,7 @@ export function NewVideoPage() {
         <Card
           title={
             <Space>
-              <span>剧本预览</span>
+              <span>Script Preview</span>
               <Tag color="magenta">script:{script.id.slice(0, 8)}</Tag>
             </Space>
           }
@@ -159,11 +172,19 @@ export function NewVideoPage() {
               <Button
                 onClick={() => {
                   setScript(null);
+                  setEditingPlan(null);
                   setStep(0);
                   form.resetFields();
                 }}
               >
-                重新填写
+                Start Over
+              </Button>
+              <Button
+                loading={editingPlanMutation.isPending}
+                onClick={() => editingPlanMutation.mutate()}
+                disabled={step === 2}
+              >
+                Agent Match
               </Button>
               <Button
                 type="primary"
@@ -171,12 +192,22 @@ export function NewVideoPage() {
                 onClick={() => startTaskMutation.mutate()}
                 disabled={step === 2}
               >
-                一键成片
+                Start Video
               </Button>
             </Space>
           }
         >
-          <ScriptBoard script={script.payload} />
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            {editingPlan && (
+              <Alert
+                type="info"
+                showIcon
+                message="Agent editing strategy"
+                description={editingPlan.strategy}
+              />
+            )}
+            <ScriptBoard script={script.payload} editingPlan={editingPlan} />
+          </Space>
         </Card>
       )}
     </Space>

@@ -5,26 +5,43 @@ import {
   LoadingOutlined,
   PlayCircleOutlined,
 } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Card, Col, Empty, Progress, Row, Space, Tag, Typography } from 'antd';
-import { useEffect } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Alert,
+  App,
+  Button,
+  Card,
+  Col,
+  Collapse,
+  Empty,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Progress,
+  Row,
+  Space,
+  Tag,
+  Typography,
+} from 'antd';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import { getTask } from '../api/task';
+import { getTask, getTaskTrace, regenerateShot, updateShot } from '../api/task';
 import { useTaskSSE } from '../hooks/useTaskSSE';
 
-import type { ShotStatus, TaskStatus } from '@tiktop/shared';
+import type { ShotDto, ShotStatus, TaskStatus, UpdateShotReq } from '@tiktop/shared';
 
 const { Title, Text, Paragraph } = Typography;
 
 const TASK_STATUS_LABEL: Record<TaskStatus, { label: string; color: string }> = {
-  queued: { label: '排队中', color: 'default' },
-  script_generating: { label: '剧本生成中', color: 'processing' },
-  script_ready: { label: '剧本就绪', color: 'cyan' },
-  shots_running: { label: '分镜生成中', color: 'processing' },
-  stitching: { label: '视频拼接中', color: 'processing' },
-  succeeded: { label: '生成完成', color: 'success' },
-  failed: { label: '失败', color: 'error' },
+  queued: { label: 'Queued', color: 'default' },
+  script_generating: { label: 'Script generating', color: 'processing' },
+  script_ready: { label: 'Script ready', color: 'cyan' },
+  shots_running: { label: 'Shots running', color: 'processing' },
+  stitching: { label: 'Stitching', color: 'processing' },
+  succeeded: { label: 'Succeeded', color: 'success' },
+  failed: { label: 'Failed', color: 'error' },
 };
 
 const SHOT_ICON: Record<ShotStatus, React.ReactNode> = {
@@ -37,6 +54,10 @@ const SHOT_ICON: Record<ShotStatus, React.ReactNode> = {
 export function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
   const sseEvent = useTaskSSE(id);
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+  const [form] = Form.useForm<UpdateShotReq>();
+  const [editingShot, setEditingShot] = useState<ShotDto | null>(null);
 
   const taskQuery = useQuery({
     queryKey: ['task', id],
@@ -50,16 +71,66 @@ export function TaskDetailPage() {
     },
   });
 
+  const traceQuery = useQuery({
+    queryKey: ['task-trace', id],
+    queryFn: () => getTaskTrace(id!),
+    enabled: !!id,
+    refetchInterval: taskQuery.data?.status === 'succeeded' ? false : 3000,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (values: UpdateShotReq) => {
+      if (!id || !editingShot) throw new Error('Missing shot');
+      return updateShot(id, editingShot.id, values);
+    },
+    onSuccess: () => {
+      message.success('Shot updated');
+      setEditingShot(null);
+      queryClient.invalidateQueries({ queryKey: ['task', id] });
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+
+  const regenerateMutation = useMutation({
+    mutationFn: async (shotId: string) => {
+      if (!id) throw new Error('Missing task');
+      return regenerateShot(id, shotId);
+    },
+    onSuccess: () => {
+      message.success('Shot regeneration started');
+      queryClient.invalidateQueries({ queryKey: ['task', id] });
+      queryClient.invalidateQueries({ queryKey: ['task-trace', id] });
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+
   useEffect(() => {
-    if (sseEvent?.taskId === id) taskQuery.refetch();
+    if (sseEvent?.taskId === id) {
+      taskQuery.refetch();
+      traceQuery.refetch();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sseEvent?.updatedAt, sseEvent?.status, id]);
 
-  if (!id) return <Empty description="任务 ID 缺失" />;
+  useEffect(() => {
+    if (editingShot) {
+      form.setFieldsValue({
+        description: editingShot.description,
+        cameraMotion: editingShot.cameraMotion,
+        prompt: editingShot.prompt ?? undefined,
+        subtitle: editingShot.subtitle ?? undefined,
+        bgmHint: editingShot.bgmHint ?? undefined,
+        durationSec: editingShot.durationSec,
+        sourceMaterialId: editingShot.sourceMaterialId ?? undefined,
+      });
+    }
+  }, [editingShot, form]);
+
+  if (!id) return <Empty description="Task id missing" />;
   if (taskQuery.isLoading) return <Card loading />;
   if (taskQuery.error) return <Alert type="error" message={(taskQuery.error as Error).message} />;
   const task = taskQuery.data;
-  if (!task) return <Empty description="任务不存在" />;
+  if (!task) return <Empty description="Task not found" />;
 
   const statusInfo = TASK_STATUS_LABEL[task.status];
   const progress = task.shots.length
@@ -76,9 +147,9 @@ export function TaskDetailPage() {
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <div>
         <Title level={3} style={{ marginBottom: 4 }}>
-          任务详情
+          Task Detail
         </Title>
-        <Space size={8}>
+        <Space size={8} wrap>
           <Tag>task:{task.id.slice(0, 12)}</Tag>
           <Tag color={statusInfo.color}>{statusInfo.label}</Tag>
           <Tag>{task.ratio}</Tag>
@@ -98,25 +169,25 @@ export function TaskDetailPage() {
           }
         />
         <Text type="secondary">
-          已完成分镜 {task.shots.filter((s) => s.status === 'video_ok').length} /{' '}
+          Completed shots {task.shots.filter((s) => s.status === 'video_ok').length} /{' '}
           {task.shots.length}
         </Text>
       </Card>
 
       {task.status === 'failed' && (
-        <Alert type="error" showIcon message="任务失败" description={task.errorMsg ?? '未知错误'} />
+        <Alert type="error" showIcon message="Task failed" description={task.errorMsg ?? 'Unknown error'} />
       )}
 
       {task.status === 'succeeded' && (
         <Alert
           type="success"
           showIcon
-          message="生成完成"
+          message="Video generated"
           description={
             <Space>
               <Link to={`/tasks/${task.id}/preview`}>
                 <Button type="primary" icon={<PlayCircleOutlined />}>
-                  前往预览
+                  Preview
                 </Button>
               </Link>
             </Space>
@@ -130,10 +201,11 @@ export function TaskDetailPage() {
             <Card
               size="small"
               title={
-                <Space size={6}>
+                <Space size={6} wrap>
                   {SHOT_ICON[shot.status]}
                   <span>Shot {shot.idx + 1}</span>
                   <Tag>{shot.durationSec}s</Tag>
+                  {shot.retryCount ? <Tag color="orange">retry {shot.retryCount}</Tag> : null}
                 </Space>
               }
               cover={
@@ -155,16 +227,37 @@ export function TaskDetailPage() {
                       color: '#bfbfbf',
                     }}
                   >
-                    {shot.status === 'failed' ? '失败' : '等待生成'}
+                    {shot.status === 'failed' ? 'Failed' : 'Waiting'}
                   </div>
                 )
               }
+              actions={[
+                <Button key="edit" type="text" onClick={() => setEditingShot(shot)}>
+                  Edit
+                </Button>,
+                <Button
+                  key="regen"
+                  type="text"
+                  loading={regenerateMutation.isPending && regenerateMutation.variables === shot.id}
+                  disabled={regenerateMutation.isPending}
+                  onClick={() => regenerateMutation.mutate(shot.id)}
+                >
+                  Regenerate
+                </Button>,
+              ]}
             >
               <Paragraph ellipsis={{ rows: 2 }} style={{ marginBottom: 6, fontSize: 13 }}>
                 {shot.description}
               </Paragraph>
+              {shot.prompt && (
+                <Paragraph ellipsis={{ rows: 2 }} type="secondary" style={{ fontSize: 12 }}>
+                  Prompt: {shot.prompt}
+                </Paragraph>
+              )}
               <Space size={4} wrap>
-                <Tag color="geekblue">{shot.cameraMotion || '默认镜头'}</Tag>
+                <Tag color="geekblue">{shot.cameraMotion || 'default camera'}</Tag>
+                {shot.subtitle && <Tag color="green">Subtitle</Tag>}
+                {shot.bgmHint && <Tag color="purple">BGM</Tag>}
               </Space>
               {shot.errorMsg && (
                 <Paragraph type="danger" style={{ fontSize: 12, marginTop: 4 }}>
@@ -175,6 +268,69 @@ export function TaskDetailPage() {
           </Col>
         ))}
       </Row>
+
+      <Collapse
+        items={[
+          {
+            key: 'trace',
+            label: `Agent Trace (${traceQuery.data?.length ?? 0})`,
+            children: traceQuery.isLoading ? (
+              <Card loading />
+            ) : !traceQuery.data?.length ? (
+              <Empty description="No trace yet" />
+            ) : (
+              <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                {traceQuery.data.map((item) => (
+                  <Card key={item.id} size="small">
+                    <Space size={6} wrap>
+                      <Tag color={item.level === 'error' ? 'red' : item.level === 'warn' ? 'orange' : 'blue'}>
+                        {item.level}
+                      </Tag>
+                      <Tag>{item.stage}</Tag>
+                      {item.shotId && <Tag>shot:{item.shotId.slice(-4)}</Tag>}
+                      <Text type="secondary">{new Date(item.createdAt).toLocaleString()}</Text>
+                    </Space>
+                    <Paragraph style={{ margin: '8px 0 0' }}>{item.message}</Paragraph>
+                  </Card>
+                ))}
+              </Space>
+            ),
+          },
+        ]}
+      />
+
+      <Modal
+        title={editingShot ? `Edit Shot ${editingShot.idx + 1}` : 'Edit Shot'}
+        open={!!editingShot}
+        onCancel={() => setEditingShot(null)}
+        onOk={() => form.submit()}
+        confirmLoading={updateMutation.isPending}
+        destroyOnClose
+      >
+        <Form form={form} layout="vertical" onFinish={(values) => updateMutation.mutate(values)}>
+          <Form.Item name="description" label="Description" rules={[{ required: true, min: 2, max: 400 }]}>
+            <Input.TextArea rows={3} />
+          </Form.Item>
+          <Form.Item name="cameraMotion" label="Camera motion">
+            <Input maxLength={80} />
+          </Form.Item>
+          <Form.Item name="prompt" label="Prompt">
+            <Input.TextArea rows={4} maxLength={800} />
+          </Form.Item>
+          <Form.Item name="subtitle" label="Subtitle">
+            <Input maxLength={120} />
+          </Form.Item>
+          <Form.Item name="bgmHint" label="BGM hint">
+            <Input maxLength={80} />
+          </Form.Item>
+          <Form.Item name="durationSec" label="Duration">
+            <InputNumber min={2} max={12} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="sourceMaterialId" label="Source material id">
+            <Input allowClear />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Space>
   );
 }

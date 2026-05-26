@@ -22,3 +22,8 @@ export async function uploadMaterial(file: File, productId?: string): Promise<Ma
 export async function deleteMaterial(id: string): Promise<void> {
   await apiClient.delete(`/materials/${id}`);
 }
+
+export async function analyzeMaterial(id: string): Promise<MaterialDto> {
+  const res = await apiClient.post<MaterialDto>(`/materials/${id}/analyze`);
+  return res.data;
+}

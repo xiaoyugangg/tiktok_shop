@@ -2314,7 +2314,7 @@ git commit -m "feat(api): add subtitle postprocess after stitching"
 - Modify: `apps/web/src/api/task.ts`
 - Modify: `apps/web/src/api/script.ts`
 
-- [ ] **Step 1: Add material analyze client**
+- [x] **Step 1: Add material analyze client**
 
 In `api/material.ts` add:
 
@@ -2325,7 +2325,7 @@ export async function analyzeMaterial(id: string): Promise<MaterialDto> {
 }
 ```
 
-- [ ] **Step 2: Add editing plan client**
+- [x] **Step 2: Add editing plan client**
 
 In `api/script.ts` add:
 
@@ -2336,7 +2336,7 @@ export async function createEditingPlan(scriptId: string): Promise<EditingPlanDt
 }
 ```
 
-- [ ] **Step 3: Add task edit clients**
+- [x] **Step 3: Add task edit clients**
 
 In `api/task.ts` add:
 
@@ -2357,7 +2357,7 @@ export async function getTaskTrace(taskId: string): Promise<TraceDto[]> {
 }
 ```
 
-- [ ] **Step 4: Add analytics client**
+- [x] **Step 4: Add analytics client**
 
 Create `api/analytics.ts`:
 
@@ -2382,7 +2382,7 @@ export async function getMockAnalytics(): Promise<AnalyticsResponse> {
 }
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -2404,11 +2404,11 @@ git commit -m "feat(web): add p1 api clients"
 **Files:**
 - Modify: `apps/web/src/pages/MaterialLibrary.tsx`
 
-- [ ] **Step 1: Add analyze mutation**
+- [x] **Step 1: Add analyze mutation**
 
 Use `analyzeMaterial` mutation and invalidate `['materials']` on success.
 
-- [ ] **Step 2: Add button on each material card**
+- [x] **Step 2: Add button on each material card**
 
 Each card should show:
 
@@ -2418,7 +2418,7 @@ Each card should show:
 
 Button disabled while mutation is running.
 
-- [ ] **Step 3: Show Agent output**
+- [x] **Step 3: Show Agent output**
 
 Show summary and tags:
 
@@ -2427,7 +2427,7 @@ Show summary and tags:
 {item.tags?.map((tag) => <Tag key={tag}>{tag}</Tag>)}
 ```
 
-- [ ] **Step 4: Verify UI build**
+- [x] **Step 4: Verify UI build**
 
 Run:
 
@@ -2450,7 +2450,7 @@ git commit -m "feat(web): show material agent analysis"
 - Modify: `apps/web/src/pages/NewVideo.tsx`
 - Modify: `apps/web/src/components/ScriptBoard.tsx`
 
-- [ ] **Step 1: Add editing plan state**
+- [x] **Step 1: Add editing plan state**
 
 In `NewVideo.tsx`, add:
 
@@ -2458,7 +2458,7 @@ In `NewVideo.tsx`, add:
 const [editingPlan, setEditingPlan] = useState<EditingPlanDto | null>(null);
 ```
 
-- [ ] **Step 2: Add mutation**
+- [x] **Step 2: Add mutation**
 
 After script generation, add a button:
 
@@ -2468,7 +2468,7 @@ After script generation, add a button:
 
 It calls `createEditingPlan(script.id)` and stores result.
 
-- [ ] **Step 3: Display Agent strategy**
+- [x] **Step 3: Display Agent strategy**
 
 Render:
 
@@ -2488,7 +2488,7 @@ BGM
 原因
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -2510,7 +2510,7 @@ git commit -m "feat(web): show editing agent plan"
 **Files:**
 - Modify: `apps/web/src/pages/TaskDetail.tsx`
 
-- [ ] **Step 1: Add selected shot state**
+- [x] **Step 1: Add selected shot state**
 
 Add:
 
@@ -2518,7 +2518,7 @@ Add:
 const [editingShot, setEditingShot] = useState<ShotDto | null>(null);
 ```
 
-- [ ] **Step 2: Add edit button per shot card**
+- [x] **Step 2: Add edit button per shot card**
 
 Add button:
 
@@ -2528,7 +2528,7 @@ Add button:
 
 Click sets `editingShot`.
 
-- [ ] **Step 3: Add modal form fields**
+- [x] **Step 3: Add modal form fields**
 
 Modal fields:
 
@@ -2543,7 +2543,7 @@ durationSec
 
 Submit calls `updateShot(task.id, editingShot.id, values)`.
 
-- [ ] **Step 4: Add regenerate button**
+- [x] **Step 4: Add regenerate button**
 
 Add button:
 
@@ -2553,7 +2553,7 @@ Add button:
 
 It calls `regenerateShot(task.id, shot.id)` and refetches task.
 
-- [ ] **Step 5: Add trace query**
+- [x] **Step 5: Add trace query**
 
 Use `getTaskTrace(id)` and render Collapse panel:
 
@@ -2562,7 +2562,7 @@ Agent Trace
 stage / level / message / createdAt
 ```
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run:
 
@@ -2588,7 +2588,7 @@ git commit -m "feat(web): add shot editing and trace panel"
 - Modify: `apps/web/src/App.tsx`
 - Modify: `apps/web/package.json`
 
-- [ ] **Step 1: Add backend analytics route**
+- [x] **Step 1: Add backend analytics route**
 
 Create `analytics.router.ts`:
 
@@ -2615,7 +2615,7 @@ Mount in `app.ts`:
 app.use('/api/analytics', analyticsRouter);
 ```
 
-- [ ] **Step 2: Add ECharts dependency**
+- [x] **Step 2: Add ECharts dependency**
 
 Run:
 
@@ -2623,7 +2623,7 @@ Run:
 pnpm --filter @tiktop/web add echarts echarts-for-react
 ```
 
-- [ ] **Step 3: Create analytics page**
+- [x] **Step 3: Create analytics page**
 
 Create page with:
 
@@ -2632,7 +2632,7 @@ Metric bar chart: factor vs CTR/CVR/completion
 Insight list: Agent recommendations
 ```
 
-- [ ] **Step 4: Add route and nav item**
+- [x] **Step 4: Add route and nav item**
 
 In `App.tsx`, add route:
 
@@ -2646,7 +2646,7 @@ and top nav item:
 数据看板
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -2669,7 +2669,7 @@ git commit -m "feat(web): add mock analytics dashboard"
 **Files:**
 - Modify: `apps/web/src/pages/Preview.tsx`
 
-- [ ] **Step 1: Add P1 labels**
+- [x] **Step 1: Add P1 labels**
 
 Show tags when output exists:
 
@@ -2685,7 +2685,7 @@ Use task metadata and config-independent wording; if exact flags are not in DTO,
 P1 后处理视频
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 Run:
 
