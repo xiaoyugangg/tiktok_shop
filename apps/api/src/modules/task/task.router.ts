@@ -3,10 +3,12 @@ import path from 'node:path';
 import { CreateTaskReqSchema, UpdateShotReqSchema } from '@tiktop/shared';
 import { Router } from 'express';
 
+import { env } from '../../env';
 import { logger } from '../../lib/logger';
 import { prisma } from '../../lib/prisma';
 import { STORAGE_ROOT } from '../../lib/storage';
 import { generateOneShot, restitchTask, runPipeline } from '../creation/pipeline';
+import { runPythonPipeline } from '../creation/pythonPipeline';
 
 import { handleTaskSse } from './sse';
 import { createTask, getTaskDto, setTaskStatus, updateShot } from './task.service';
@@ -24,7 +26,11 @@ taskRouter.post('/', async (req, res, next) => {
     setImmediate(async () => {
       try {
         await setTaskStatus({ taskId, status: 'script_ready', stage: '剧本准备完成' });
-        await runPipeline({ taskId, script, ratio: parsed.data.ratio });
+        if (env.PYTHON_PIPELINE_ENABLED) {
+          await runPythonPipeline({ taskId, ratio: parsed.data.ratio });
+        } else {
+          await runPipeline({ taskId, script, ratio: parsed.data.ratio });
+        }
       } catch (err) {
         logger.error({ err, taskId }, 'pipeline crashed');
         await setTaskStatus({

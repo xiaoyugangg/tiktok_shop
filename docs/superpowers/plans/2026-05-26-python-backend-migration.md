@@ -1481,7 +1481,7 @@ git commit -m "feat(agent): add python langgraph video pipeline"
 - Modify: `apps/api/src/modules/task/task.router.ts`
 - Modify: `apps/api/src/lib/agentClient.ts`
 
-- [ ] **Step 1: Add Node Python pipeline response type**
+- [x] **Step 1: Add Node Python pipeline response type**
 
 Modify `apps/api/src/lib/agentClient.ts`:
 
@@ -1495,7 +1495,7 @@ export interface PipelineRunResponse {
 }
 ```
 
-- [ ] **Step 2: Create Python pipeline adapter**
+- [x] **Step 2: Create Python pipeline adapter**
 
 Create `apps/api/src/modules/creation/pythonPipeline.ts`:
 
@@ -1562,7 +1562,7 @@ export async function runPythonPipeline(args: { taskId: string; ratio: Ratio }):
 }
 ```
 
-- [ ] **Step 3: Switch task router to Python pipeline behind feature flag**
+- [x] **Step 3: Switch task router to Python pipeline behind feature flag**
 
 Modify `apps/api/src/modules/task/task.router.ts` imports:
 
@@ -1592,7 +1592,7 @@ Add `env` import:
 import { env } from '../../env';
 ```
 
-- [ ] **Step 4: Keep Node pipeline as fallback**
+- [x] **Step 4: Keep Node pipeline as fallback**
 
 Do not delete `apps/api/src/modules/creation/pipeline.ts`. It remains the fallback when:
 
@@ -1600,7 +1600,7 @@ Do not delete `apps/api/src/modules/creation/pipeline.ts`. It remains the fallba
 PYTHON_PIPELINE_ENABLED=false
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -1616,7 +1616,7 @@ Expected:
 all pass
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add apps/api/src/lib/agentClient.ts apps/api/src/modules/creation/pythonPipeline.ts apps/api/src/modules/task/task.router.ts

@@ -67,6 +67,14 @@ export interface ScriptGenerateResponse {
   trace: AgentTraceItem[];
 }
 
+export interface PipelineRunResponse {
+  task_id: string;
+  status: 'succeeded' | 'failed';
+  output_path?: string | null;
+  error_message?: string | null;
+  trace: AgentTraceItem[];
+}
+
 export async function callAgent<TResponse>(
   path: string,
   body?: unknown,
