@@ -55,31 +55,31 @@ export function NewVideoPage() {
       setScript(dto);
       setEditingPlan(null);
       setStep(1);
-      message.success('Script generated');
+      message.success('剧本生成成功');
     },
     onError: (err: Error) => message.error(err.message),
   });
 
   const editingPlanMutation = useMutation({
     mutationFn: async () => {
-      if (!script) throw new Error('Please generate script first');
+      if (!script) throw new Error('请先生成剧本');
       return createEditingPlan(script.id);
     },
     onSuccess: (plan) => {
       setEditingPlan(plan);
-      message.success('Agent editing plan ready');
+      message.success('Agent 剪辑计划已生成');
     },
     onError: (err: Error) => message.error(err.message),
   });
 
   const startTaskMutation = useMutation({
     mutationFn: async () => {
-      if (!script) throw new Error('Please generate script first');
+      if (!script) throw new Error('请先生成剧本');
       const ratio = form.getFieldValue('ratio') as Ratio;
       return startVideoTask({ scriptId: script.id, ratio });
     },
     onSuccess: (task) => {
-      message.success('Video task started');
+      message.success('视频任务已启动');
       setStep(2);
       navigate(`/tasks/${task.id}`);
     },
@@ -90,14 +90,14 @@ export function NewVideoPage() {
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <div>
         <Title level={3} style={{ marginBottom: 4 }}>
-          New Video
+          新建视频
         </Title>
-        <Text type="secondary">Fill product info, generate a script, then start the video task.</Text>
+        <Text type="secondary">填写商品信息，生成剧本，然后启动带货视频生成任务。</Text>
       </div>
 
       <Steps
         current={step}
-        items={[{ title: 'Product' }, { title: 'Script' }, { title: 'Video' }]}
+        items={[{ title: '商品信息' }, { title: '剧本预览' }, { title: '生成视频' }]}
       />
 
       <Card>
@@ -108,39 +108,39 @@ export function NewVideoPage() {
           onFinish={(v) => generateMutation.mutate(v)}
           disabled={step !== 0}
         >
-          <Form.Item name="title" label="Product title" rules={[{ required: true, max: 80 }]}>
-            <Input placeholder="Wireless noise cancelling earbuds" />
+          <Form.Item name="title" label="商品标题" rules={[{ required: true, max: 80 }]}>
+            <Input placeholder="例如：无线降噪耳机" />
           </Form.Item>
           <Form.Item
             name="sellingPoints"
-            label="Selling points"
+            label="核心卖点"
             rules={[{ required: true, type: 'array', min: 1, max: 8 }]}
           >
             <Select
               mode="tags"
-              placeholder="Press Enter after each selling point"
+              placeholder="输入卖点后按回车，例如：主动降噪、续航 30h"
               tokenSeparators={[',', ';']}
             />
           </Form.Item>
-          <Form.Item name="targetAudience" label="Target audience">
-            <Input placeholder="Commuters, office workers, students" />
+          <Form.Item name="targetAudience" label="目标人群">
+            <Input placeholder="例如：通勤白领、学生、运动人群" />
           </Form.Item>
-          <Form.Item name="scene" label="Use scene">
-            <Input placeholder="Commute, home office, gym" />
+          <Form.Item name="scene" label="使用场景">
+            <Input placeholder="例如：地铁通勤、居家办公、健身" />
           </Form.Item>
-          <Form.Item name="mainMaterialId" label="Main product image">
+          <Form.Item name="mainMaterialId" label="商品主图">
             <Select
               allowClear
-              placeholder="Choose an image material"
+              placeholder="从素材库选择图片素材"
               options={materials
                 .filter((m) => m.kind === 'image')
                 .map((m) => ({ value: m.id, label: m.filename }))}
             />
           </Form.Item>
-          <Form.Item name="ratio" label="Ratio">
+          <Form.Item name="ratio" label="画幅">
             <Radio.Group>
-              <Radio.Button value="9:16">9:16 vertical</Radio.Button>
-              <Radio.Button value="16:9">16:9 horizontal</Radio.Button>
+              <Radio.Button value="9:16">9:16 竖版</Radio.Button>
+              <Radio.Button value="16:9">16:9 横版</Radio.Button>
             </Radio.Group>
           </Form.Item>
           <Form.Item>
@@ -151,9 +151,9 @@ export function NewVideoPage() {
                 loading={generateMutation.isPending}
                 disabled={step !== 0}
               >
-                Generate Script
+                生成剧本
               </Button>
-              {products.length > 0 && <Text type="secondary">{products.length} products saved</Text>}
+              {products.length > 0 && <Text type="secondary">已创建 {products.length} 个商品</Text>}
             </Space>
           </Form.Item>
         </Form>
@@ -163,7 +163,7 @@ export function NewVideoPage() {
         <Card
           title={
             <Space>
-              <span>Script Preview</span>
+              <span>剧本预览</span>
               <Tag color="magenta">script:{script.id.slice(0, 8)}</Tag>
             </Space>
           }
@@ -177,14 +177,14 @@ export function NewVideoPage() {
                   form.resetFields();
                 }}
               >
-                Start Over
+                重新填写
               </Button>
               <Button
                 loading={editingPlanMutation.isPending}
                 onClick={() => editingPlanMutation.mutate()}
                 disabled={step === 2}
               >
-                Agent Match
+                智能匹配素材
               </Button>
               <Button
                 type="primary"
@@ -192,7 +192,7 @@ export function NewVideoPage() {
                 onClick={() => startTaskMutation.mutate()}
                 disabled={step === 2}
               >
-                Start Video
+                一键成片
               </Button>
             </Space>
           }
@@ -202,7 +202,7 @@ export function NewVideoPage() {
               <Alert
                 type="info"
                 showIcon
-                message="Agent editing strategy"
+                message="Agent 剪辑策略"
                 description={editingPlan.strategy}
               />
             )}

@@ -10,9 +10,9 @@ import { TaskDetailPage } from './pages/TaskDetail';
 const { Header, Content } = Layout;
 
 const menuItems = [
-  { key: '/materials', label: <Link to="/materials">Materials</Link> },
-  { key: '/new', label: <Link to="/new">New Video</Link> },
-  { key: '/analytics', label: <Link to="/analytics">Analytics</Link> },
+  { key: '/materials', label: <Link to="/materials">素材库</Link> },
+  { key: '/new', label: <Link to="/new">新建视频</Link> },
+  { key: '/analytics', label: <Link to="/analytics">数据看板</Link> },
 ];
 
 export function App() {
@@ -22,7 +22,7 @@ export function App() {
   return (
     <Layout className="app-shell">
       <Header className="app-shell__header">
-        <div className="app-shell__brand">AIGC Video Studio</div>
+        <div className="app-shell__brand">AIGC 带货视频生成系统</div>
         <Menu
           mode="horizontal"
           selectedKeys={[selected]}

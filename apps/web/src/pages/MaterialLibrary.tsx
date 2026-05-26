@@ -44,7 +44,7 @@ export function MaterialLibraryPage() {
   const analyzeMutation = useMutation({
     mutationFn: analyzeMaterial,
     onSuccess: () => {
-      message.success('Agent analysis complete');
+      message.success('Agent 素材分析完成');
       queryClient.invalidateQueries({ queryKey: ['materials'] });
     },
     onError: (err: Error) => message.error(err.message),
@@ -121,7 +121,7 @@ export function MaterialLibraryPage() {
                     disabled={analyzeMutation.isPending}
                     onClick={() => analyzeMutation.mutate(m.id)}
                   >
-                    Analyze
+                    分析素材
                   </Button>,
                   <Popconfirm
                     key="del"

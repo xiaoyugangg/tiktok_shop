@@ -35,13 +35,13 @@ import type { ShotDto, ShotStatus, TaskStatus, UpdateShotReq } from '@tiktop/sha
 const { Title, Text, Paragraph } = Typography;
 
 const TASK_STATUS_LABEL: Record<TaskStatus, { label: string; color: string }> = {
-  queued: { label: 'Queued', color: 'default' },
-  script_generating: { label: 'Script generating', color: 'processing' },
-  script_ready: { label: 'Script ready', color: 'cyan' },
-  shots_running: { label: 'Shots running', color: 'processing' },
-  stitching: { label: 'Stitching', color: 'processing' },
-  succeeded: { label: 'Succeeded', color: 'success' },
-  failed: { label: 'Failed', color: 'error' },
+  queued: { label: '排队中', color: 'default' },
+  script_generating: { label: '剧本生成中', color: 'processing' },
+  script_ready: { label: '剧本就绪', color: 'cyan' },
+  shots_running: { label: '分镜生成中', color: 'processing' },
+  stitching: { label: '视频拼接中', color: 'processing' },
+  succeeded: { label: '生成完成', color: 'success' },
+  failed: { label: '失败', color: 'error' },
 };
 
 const SHOT_ICON: Record<ShotStatus, React.ReactNode> = {
@@ -80,11 +80,11 @@ export function TaskDetailPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (values: UpdateShotReq) => {
-      if (!id || !editingShot) throw new Error('Missing shot');
+      if (!id || !editingShot) throw new Error('缺少分镜信息');
       return updateShot(id, editingShot.id, values);
     },
     onSuccess: () => {
-      message.success('Shot updated');
+      message.success('分镜已更新');
       setEditingShot(null);
       queryClient.invalidateQueries({ queryKey: ['task', id] });
     },
@@ -93,11 +93,11 @@ export function TaskDetailPage() {
 
   const regenerateMutation = useMutation({
     mutationFn: async (shotId: string) => {
-      if (!id) throw new Error('Missing task');
+      if (!id) throw new Error('缺少任务信息');
       return regenerateShot(id, shotId);
     },
     onSuccess: () => {
-      message.success('Shot regeneration started');
+      message.success('分镜重生成已启动');
       queryClient.invalidateQueries({ queryKey: ['task', id] });
       queryClient.invalidateQueries({ queryKey: ['task-trace', id] });
     },
@@ -126,11 +126,11 @@ export function TaskDetailPage() {
     }
   }, [editingShot, form]);
 
-  if (!id) return <Empty description="Task id missing" />;
+  if (!id) return <Empty description="缺少任务 ID" />;
   if (taskQuery.isLoading) return <Card loading />;
   if (taskQuery.error) return <Alert type="error" message={(taskQuery.error as Error).message} />;
   const task = taskQuery.data;
-  if (!task) return <Empty description="Task not found" />;
+  if (!task) return <Empty description="任务不存在" />;
 
   const statusInfo = TASK_STATUS_LABEL[task.status];
   const progress = task.shots.length
@@ -147,7 +147,7 @@ export function TaskDetailPage() {
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <div>
         <Title level={3} style={{ marginBottom: 4 }}>
-          Task Detail
+          任务详情
         </Title>
         <Space size={8} wrap>
           <Tag>task:{task.id.slice(0, 12)}</Tag>
@@ -169,25 +169,25 @@ export function TaskDetailPage() {
           }
         />
         <Text type="secondary">
-          Completed shots {task.shots.filter((s) => s.status === 'video_ok').length} /{' '}
+          已完成分镜 {task.shots.filter((s) => s.status === 'video_ok').length} /{' '}
           {task.shots.length}
         </Text>
       </Card>
 
       {task.status === 'failed' && (
-        <Alert type="error" showIcon message="Task failed" description={task.errorMsg ?? 'Unknown error'} />
+        <Alert type="error" showIcon message="任务失败" description={task.errorMsg ?? '未知错误'} />
       )}
 
       {task.status === 'succeeded' && (
         <Alert
           type="success"
           showIcon
-          message="Video generated"
+          message="视频生成完成"
           description={
             <Space>
               <Link to={`/tasks/${task.id}/preview`}>
                 <Button type="primary" icon={<PlayCircleOutlined />}>
-                  Preview
+                  前往预览
                 </Button>
               </Link>
             </Space>
@@ -203,7 +203,7 @@ export function TaskDetailPage() {
               title={
                 <Space size={6} wrap>
                   {SHOT_ICON[shot.status]}
-                  <span>Shot {shot.idx + 1}</span>
+                  <span>分镜 {shot.idx + 1}</span>
                   <Tag>{shot.durationSec}s</Tag>
                   {shot.retryCount ? <Tag color="orange">retry {shot.retryCount}</Tag> : null}
                 </Space>
@@ -227,13 +227,13 @@ export function TaskDetailPage() {
                       color: '#bfbfbf',
                     }}
                   >
-                    {shot.status === 'failed' ? 'Failed' : 'Waiting'}
+                    {shot.status === 'failed' ? '失败' : '等待生成'}
                   </div>
                 )
               }
               actions={[
                 <Button key="edit" type="text" onClick={() => setEditingShot(shot)}>
-                  Edit
+                  编辑
                 </Button>,
                 <Button
                   key="regen"
@@ -242,7 +242,7 @@ export function TaskDetailPage() {
                   disabled={regenerateMutation.isPending}
                   onClick={() => regenerateMutation.mutate(shot.id)}
                 >
-                  Regenerate
+                  重生成
                 </Button>,
               ]}
             >
@@ -255,8 +255,8 @@ export function TaskDetailPage() {
                 </Paragraph>
               )}
               <Space size={4} wrap>
-                <Tag color="geekblue">{shot.cameraMotion || 'default camera'}</Tag>
-                {shot.subtitle && <Tag color="green">Subtitle</Tag>}
+                <Tag color="geekblue">{shot.cameraMotion || '默认镜头'}</Tag>
+                {shot.subtitle && <Tag color="green">字幕</Tag>}
                 {shot.bgmHint && <Tag color="purple">BGM</Tag>}
               </Space>
               {shot.errorMsg && (
@@ -273,11 +273,11 @@ export function TaskDetailPage() {
         items={[
           {
             key: 'trace',
-            label: `Agent Trace (${traceQuery.data?.length ?? 0})`,
+            label: `Agent 生成过程 Trace (${traceQuery.data?.length ?? 0})`,
             children: traceQuery.isLoading ? (
               <Card loading />
             ) : !traceQuery.data?.length ? (
-              <Empty description="No trace yet" />
+              <Empty description="暂无 trace" />
             ) : (
               <Space direction="vertical" size="small" style={{ width: '100%' }}>
                 {traceQuery.data.map((item) => (
@@ -300,7 +300,7 @@ export function TaskDetailPage() {
       />
 
       <Modal
-        title={editingShot ? `Edit Shot ${editingShot.idx + 1}` : 'Edit Shot'}
+        title={editingShot ? `编辑分镜 ${editingShot.idx + 1}` : '编辑分镜'}
         open={!!editingShot}
         onCancel={() => setEditingShot(null)}
         onOk={() => form.submit()}
@@ -308,25 +308,25 @@ export function TaskDetailPage() {
         destroyOnClose
       >
         <Form form={form} layout="vertical" onFinish={(values) => updateMutation.mutate(values)}>
-          <Form.Item name="description" label="Description" rules={[{ required: true, min: 2, max: 400 }]}>
+          <Form.Item name="description" label="画面描述" rules={[{ required: true, min: 2, max: 400 }]}>
             <Input.TextArea rows={3} />
           </Form.Item>
-          <Form.Item name="cameraMotion" label="Camera motion">
+          <Form.Item name="cameraMotion" label="镜头运动">
             <Input maxLength={80} />
           </Form.Item>
           <Form.Item name="prompt" label="Prompt">
             <Input.TextArea rows={4} maxLength={800} />
           </Form.Item>
-          <Form.Item name="subtitle" label="Subtitle">
+          <Form.Item name="subtitle" label="字幕">
             <Input maxLength={120} />
           </Form.Item>
-          <Form.Item name="bgmHint" label="BGM hint">
+          <Form.Item name="bgmHint" label="BGM 提示">
             <Input maxLength={80} />
           </Form.Item>
-          <Form.Item name="durationSec" label="Duration">
+          <Form.Item name="durationSec" label="时长">
             <InputNumber min={2} max={12} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="sourceMaterialId" label="Source material id">
+          <Form.Item name="sourceMaterialId" label="素材 ID">
             <Input allowClear />
           </Form.Item>
         </Form>
