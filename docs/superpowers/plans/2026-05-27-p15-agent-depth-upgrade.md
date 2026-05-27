@@ -752,7 +752,7 @@ git commit -m "feat(api): persist editing plans"
 - Test: `apps/agent/tests/test_editing_graph.py`
 - Test: `apps/agent/tests/test_editing_agent.py`
 
-- [ ] **Step 1: Add test for LLM-plan shape using mock mode**
+- [x] **Step 1: Add test for LLM-plan shape using mock mode**
 
 Update `tests/test_editing_graph.py` with a test that expects:
 
@@ -766,7 +766,7 @@ assert any(t.stage == "editing.rag.retrieve" for t in result.trace)
 assert any(t.stage == "editing.llm.plan" for t in result.trace)
 ```
 
-- [ ] **Step 2: Add low-level chat helper**
+- [x] **Step 2: Add low-level chat helper**
 
 In `ark_text.py`, expose:
 
@@ -815,7 +815,7 @@ Behavior:
 - In live mode, call Doubao chat completion with JSON response format.
 - On invalid JSON, raise a clear `RuntimeError`.
 
-- [ ] **Step 3: Replace rule-only graph**
+- [x] **Step 3: Replace rule-only graph**
 
 Refactor `editing_graph.py` nodes:
 
@@ -842,7 +842,7 @@ Avoid real human faces and exaggerated product claims.
 Return strict JSON only.
 ```
 
-- [ ] **Step 4: Validate and repair**
+- [x] **Step 4: Validate and repair**
 
 Use Pydantic to validate:
 
@@ -864,7 +864,7 @@ If still invalid:
 fallback to deterministic rule plan and trace stage editing.llm.fallback
 ```
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 ```powershell
 conda run --no-capture-output -n tiktop_agent_p1 python -m pytest tests/test_editing_graph.py tests/test_editing_agent.py -q
@@ -876,7 +876,7 @@ Expected:
 all selected tests pass
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add apps/agent/src/agent_app/agents/editing_graph.py apps/agent/src/agent_app/providers/ark_text.py apps/agent/src/agent_app/schemas.py apps/agent/tests/test_editing_graph.py apps/agent/tests/test_editing_agent.py

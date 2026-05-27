@@ -8,7 +8,10 @@ from agent_app.schemas import (
 )
 
 
-def test_editing_plan_returns_one_planned_shot_per_input_shot():
+def test_editing_plan_returns_one_planned_shot_per_input_shot(monkeypatch):
+    monkeypatch.setattr("agent_app.providers.embedding.settings.model_mode", "mock")
+    monkeypatch.setattr("agent_app.providers.ark_text.settings.model_mode", "mock")
+
     req = EditingPlanRequest(
         product=ProductInput(title="Wireless Earbuds", selling_points=["noise cancelling"]),
         script=ScriptInput(
@@ -27,7 +30,6 @@ def test_editing_plan_returns_one_planned_shot_per_input_shot():
                 summary="white earbuds product image",
                 tags=["earbuds", "image"],
                 embedding_text="white earbuds product image",
-                embedding_vector=[1.0] + [0.0] * 15,
             )
         ],
     )
@@ -36,4 +38,6 @@ def test_editing_plan_returns_one_planned_shot_per_input_shot():
     assert plan.shots[0].source_material_id == "m1"
     assert "Wireless Earbuds" in plan.shots[0].prompt
     assert any(t.stage == "agent.graph.start" for t in plan.trace)
+    assert any(t.stage == "editing.rag.retrieve" for t in plan.trace)
+    assert any(t.stage == "editing.llm.plan" for t in plan.trace)
     assert "LangGraph" in plan.strategy

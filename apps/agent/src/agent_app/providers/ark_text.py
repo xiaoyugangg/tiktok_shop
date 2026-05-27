@@ -12,6 +12,53 @@ from agent_app.schemas import (
 )
 
 
+def chat_json(system_prompt: str, user_payload: dict, stage: str) -> dict:
+    if settings.model_mode == "mock" or not settings.ark_api_key or not settings.ark_text_model:
+        product = user_payload["product"]
+        rag_context = {item["idx"]: item for item in user_payload.get("rag_context", [])}
+        shots = []
+        for shot in user_payload["script"]["shots"]:
+            candidates = rag_context.get(shot["idx"], {}).get("candidates", [])
+            selected = candidates[0]["material_id"] if candidates else None
+            subtitle = shot.get("subtitle") or (product.get("selling_points") or [product["title"]])[0]
+            shots.append(
+                {
+                    "idx": shot["idx"],
+                    "prompt": (
+                        f"Create a {user_payload['script']['ratio']} ecommerce shot for "
+                        f"{product['title']}. Scene: {shot['description']}. "
+                        f"Selling point: {subtitle}. Use the selected first-frame material "
+                        "when available. Avoid real human faces and exaggerated claims."
+                    ),
+                    "subtitle": subtitle,
+                    "bgm_hint": shot.get("bgm_hint") or "upbeat commercial",
+                    "duration_sec": max(2, min(12, int(shot.get("duration_sec", 4)))),
+                    "source_material_id": selected,
+                    "reason": "Mock LLM selected the top RAG candidate and rewrote the shot prompt.",
+                }
+            )
+        return {"strategy": f"LangGraph LLM mock plan for {stage}", "shots": shots}
+
+    headers = {"Authorization": f"Bearer {settings.ark_api_key}", "Content-Type": "application/json"}
+    payload = {
+        "model": settings.ark_text_model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)},
+        ],
+        "response_format": {"type": "json_object"},
+        "temperature": 0.4,
+    }
+    resp = httpx.post(
+        f"{settings.ark_base_url}/chat/completions",
+        headers=headers,
+        json=payload,
+        timeout=60,
+    )
+    resp.raise_for_status()
+    return json.loads(resp.json()["choices"][0]["message"]["content"])
+
+
 def _mock_script(req: ScriptGenerateRequest) -> ScriptGenerateResponse:
     points = req.product.selling_points[:3] or [req.product.title]
     secondary_points = " / ".join(points[1:]) or points[0]
