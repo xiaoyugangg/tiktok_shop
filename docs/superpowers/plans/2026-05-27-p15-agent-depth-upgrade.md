@@ -1110,7 +1110,7 @@ git commit -m "feat(pipeline): regenerate shots through python"
 - Modify: `apps/api/src/modules/script/script.service.ts`
 - Modify: `apps/api/package.json` if dependencies become unused
 
-- [ ] **Step 1: Confirm imports are gone**
+- [x] **Step 1: Confirm imports are gone**
 
 Run:
 
@@ -1124,7 +1124,7 @@ Expected:
 no active imports
 ```
 
-- [ ] **Step 2: Delete files**
+- [x] **Step 2: Delete files**
 
 Delete only files with no remaining imports:
 
@@ -1136,7 +1136,7 @@ apps/api/src/lib/queue.ts
 apps/api/src/lib/ffmpeg.ts
 ```
 
-- [ ] **Step 3: Remove unused dependencies**
+- [x] **Step 3: Remove unused dependencies**
 
 Check `apps/api/package.json`.
 
@@ -1158,7 +1158,7 @@ Run:
 pnpm install
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -1175,7 +1175,7 @@ typecheck and lint pass
 legacy AI references gone
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/api pnpm-lock.yaml

@@ -7,7 +7,6 @@ import { env } from '../../env';
 import { logger } from '../../lib/logger';
 import { prisma } from '../../lib/prisma';
 import { STORAGE_ROOT } from '../../lib/storage';
-import { runPipeline } from '../creation/pipeline';
 import { runPythonPipeline, runPythonRegenerateShot } from '../creation/pythonPipeline';
 
 import { handleTaskSse } from './sse';
@@ -26,15 +25,11 @@ taskRouter.post('/', async (req, res, next) => {
       res.status(400).json({ message: 'editingPlanId is required before video generation' });
       return;
     }
-    const { taskId, script } = await createTask(parsed.data);
+    const { taskId } = await createTask(parsed.data);
     setImmediate(async () => {
       try {
         await setTaskStatus({ taskId, status: 'script_ready', stage: '剧本准备完成' });
-        if (env.PYTHON_PIPELINE_ENABLED) {
-          await runPythonPipeline({ taskId, ratio: parsed.data.ratio });
-        } else {
-          await runPipeline({ taskId, script, ratio: parsed.data.ratio });
-        }
+        await runPythonPipeline({ taskId, ratio: parsed.data.ratio });
       } catch (err) {
         logger.error({ err, taskId }, 'pipeline crashed');
         await setTaskStatus({
