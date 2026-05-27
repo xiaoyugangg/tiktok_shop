@@ -14,8 +14,10 @@ def test_analyze_material_generates_tags_and_vector():
         )
     )
     assert result.material_id == "m1"
+    assert result.caption
     assert "image" in result.tags
     assert len(result.embedding_vector) == 16
+    assert result.embedding_model == "mock-hash-16"
     assert result.trace[0].stage == "material.analyze"
 
 

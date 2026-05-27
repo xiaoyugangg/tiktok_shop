@@ -279,7 +279,7 @@ git commit -m "feat(agent): add p15 config and schemas"
 - Modify: `apps/agent/src/agent_app/agents/material_agent.py`
 - Test: `apps/agent/tests/test_vision_caption.py`
 
-- [ ] **Step 1: Write provider tests**
+- [x] **Step 1: Write provider tests**
 
 Create `apps/agent/tests/test_vision_caption.py`:
 
@@ -300,7 +300,7 @@ def test_caption_material_falls_back_without_model(tmp_path, monkeypatch):
     assert "product.jpg" in caption
 ```
 
-- [ ] **Step 2: Implement provider**
+- [x] **Step 2: Implement provider**
 
 Create `apps/agent/src/agent_app/providers/vision_caption.py`:
 
@@ -344,7 +344,7 @@ def caption_material(path: str, mime: str, product_title: str | None = None) -> 
 
 Also add a local helper `_image_data_url(path: str, mime: str) -> str` in the same file, following the existing image data URL pattern in `seedance_video.py`.
 
-- [ ] **Step 3: Integrate into material analysis**
+- [x] **Step 3: Integrate into material analysis**
 
 Update `material_agent.py`:
 
@@ -354,7 +354,7 @@ Update `material_agent.py`:
 
 If current `MaterialAnalyzeRequest` does not include file path, extend Node request payload in a later task; for now keep fallback behavior.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 ```powershell
 conda run --no-capture-output -n tiktop_agent_p1 python -m pytest tests/test_vision_caption.py tests/test_material_agent.py -q
@@ -366,7 +366,7 @@ Expected:
 all selected tests pass
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/agent/src/agent_app/providers/vision_caption.py apps/agent/src/agent_app/agents/material_agent.py apps/agent/tests/test_vision_caption.py apps/agent/tests/test_material_agent.py
