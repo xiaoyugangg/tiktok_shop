@@ -2,7 +2,10 @@ from agent_app.agents.material_agent import analyze_material, search_materials
 from agent_app.schemas import MaterialAnalyzeRequest, MaterialSearchRequest
 
 
-def test_analyze_material_generates_tags_and_vector():
+def test_analyze_material_generates_tags_and_vector(monkeypatch):
+    monkeypatch.setattr("agent_app.providers.embedding.settings.model_mode", "mock")
+    monkeypatch.setattr("agent_app.providers.vision_caption.settings.model_mode", "mock")
+
     result = analyze_material(
         MaterialAnalyzeRequest(
             material_id="m1",
@@ -16,12 +19,15 @@ def test_analyze_material_generates_tags_and_vector():
     assert result.material_id == "m1"
     assert result.caption
     assert "image" in result.tags
-    assert len(result.embedding_vector) == 16
-    assert result.embedding_model == "mock-hash-16"
+    assert len(result.embedding_vector) == 64
+    assert result.embedding_model == "mock-hash-64"
     assert result.trace[0].stage == "material.analyze"
 
 
-def test_search_materials_ranks_related_material_first():
+def test_search_materials_ranks_related_material_first(monkeypatch):
+    monkeypatch.setattr("agent_app.providers.embedding.settings.model_mode", "mock")
+    monkeypatch.setattr("agent_app.providers.vision_caption.settings.model_mode", "mock")
+
     m1 = analyze_material(
         MaterialAnalyzeRequest(
             material_id="m1",

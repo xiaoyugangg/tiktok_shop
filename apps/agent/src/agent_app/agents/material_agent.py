@@ -1,7 +1,6 @@
-import hashlib
-import math
 import re
 
+from agent_app.providers.embedding import cosine_similarity, embed_text
 from agent_app.providers.vision_caption import caption_material
 from agent_app.schemas import (
     MaterialAnalyzeRequest,
@@ -17,20 +16,6 @@ def _tokens(text: str) -> list[str]:
     return [x for x in re.split(r"[^a-zA-Z0-9\u4e00-\u9fff]+", text.lower()) if x]
 
 
-def _vector(text: str, dims: int = 16) -> list[float]:
-    values = [0.0] * dims
-    for token in _tokens(text):
-        digest = hashlib.sha256(token.encode("utf-8")).digest()
-        idx = digest[0] % dims
-        values[idx] += 1.0
-    norm = math.sqrt(sum(v * v for v in values)) or 1.0
-    return [round(v / norm, 6) for v in values]
-
-
-def _cosine(a: list[float], b: list[float]) -> float:
-    return sum(x * y for x, y in zip(a, b))
-
-
 def analyze_material(req: MaterialAnalyzeRequest) -> MaterialAnalyzeResponse:
     base = " ".join(
         [req.filename, req.mime, req.kind, req.product_title or "", *req.selling_points]
@@ -44,34 +29,36 @@ def analyze_material(req: MaterialAnalyzeRequest) -> MaterialAnalyzeResponse:
     tags = sorted(set([req.kind, *_tokens(base)[:8]]))
     summary = caption or f"{req.kind} material {req.filename} for {req.product_title or 'unknown product'}"
     embedding_text = " ".join([summary, *tags])
+    embedding_vector, embedding_model = embed_text(embedding_text)
     return MaterialAnalyzeResponse(
         material_id=req.material_id,
         caption=caption,
         summary=summary,
         tags=tags,
         embedding_text=" ".join([embedding_text, caption_text]).strip(),
-        embedding_vector=_vector(embedding_text),
-        embedding_model="mock-hash-16",
+        embedding_vector=embedding_vector,
+        embedding_model=embedding_model,
         trace=[
             TraceItem(
                 stage="material.analyze",
-                message="Generated caption, tags, and deterministic mock embedding",
-                payload={"tags": tags, "caption": caption},
+                message="Generated caption, tags, and semantic embedding",
+                payload={"tags": tags, "caption": caption, "embedding_model": embedding_model},
             )
         ],
     )
 
 
 def search_materials(req: MaterialSearchRequest) -> MaterialSearchResponse:
-    query_vec = _vector(req.query)
+    query_vec, embedding_model = embed_text(req.query)
     ranked = sorted(
         (
             MaterialSearchResult(
                 material_id=m.material_id,
-                score=round(_cosine(query_vec, m.embedding_vector), 6),
-                reason=f"Matched query against tags: {', '.join(m.tags[:5])}",
+                score=round(cosine_similarity(query_vec, m.embedding_vector), 6),
+                reason=f"RAG matched query with material: {m.summary}",
             )
             for m in req.materials
+            if m.embedding_vector
         ),
         key=lambda x: x.score,
         reverse=True,
@@ -81,8 +68,12 @@ def search_materials(req: MaterialSearchRequest) -> MaterialSearchResponse:
         trace=[
             TraceItem(
                 stage="material.search",
-                message="Ranked materials by deterministic embedding similarity",
-                payload={"query": req.query, "count": len(req.materials)},
+                message="Ranked materials by semantic embedding similarity",
+                payload={
+                    "query": req.query,
+                    "count": len(req.materials),
+                    "embedding_model": embedding_model,
+                },
             )
         ],
     )

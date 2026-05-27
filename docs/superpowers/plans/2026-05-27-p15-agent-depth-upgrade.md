@@ -384,7 +384,7 @@ git commit -m "feat(agent): caption materials with vision model"
 - Test: `apps/agent/tests/test_embedding_provider.py`
 - Test: `apps/agent/tests/test_material_agent.py`
 
-- [ ] **Step 1: Write embedding tests**
+- [x] **Step 1: Write embedding tests**
 
 Create `apps/agent/tests/test_embedding_provider.py`:
 
@@ -405,7 +405,7 @@ def test_cosine_similarity_prefers_similar_vector():
     assert cosine_similarity(query, good) > cosine_similarity(query, bad)
 ```
 
-- [ ] **Step 2: Implement embedding provider**
+- [x] **Step 2: Implement embedding provider**
 
 Create `apps/agent/src/agent_app/providers/embedding.py`:
 
@@ -451,7 +451,7 @@ def embed_text(text: str) -> tuple[list[float], str]:
     return normalize_vector([float(x) for x in values]), settings.ark_embedding_model
 ```
 
-- [ ] **Step 3: Replace material hash vector**
+- [x] **Step 3: Replace material hash vector**
 
 Update `material_agent.py`:
 
@@ -460,7 +460,7 @@ Update `material_agent.py`:
 - Save `embedding_model`.
 - Keep mock fallback only when `MODEL_MODE=mock`.
 
-- [ ] **Step 4: Update search to use query embedding**
+- [x] **Step 4: Update search to use query embedding**
 
 Update `search_materials`:
 
@@ -488,7 +488,7 @@ material.search.embedding
 material.search.rank
 ```
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 ```powershell
 conda run --no-capture-output -n tiktop_agent_p1 python -m pytest tests/test_embedding_provider.py tests/test_material_agent.py -q
@@ -500,7 +500,7 @@ Expected:
 all selected tests pass
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add apps/agent/src/agent_app/providers/embedding.py apps/agent/src/agent_app/agents/material_agent.py apps/agent/tests/test_embedding_provider.py apps/agent/tests/test_material_agent.py
