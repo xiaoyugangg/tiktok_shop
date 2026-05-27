@@ -52,7 +52,14 @@ Write-Host "script generated: $($script.id)"
 
 Write-Host "Requesting editing plan..."
 $plan = Invoke-Json -Method Post -Url "$ApiBaseUrl/scripts/$($script.id)/editing-plan"
-Write-Host "editing plan ok: shots=$($plan.shots.Count)"
+Write-Host "editing plan created: $($plan.id)"
+Write-Host "planned shots: $($plan.shots.Count)"
+$selectedMaterials = @($plan.shots | ForEach-Object { $_.sourceMaterialId } | Where-Object { $_ })
+if ($selectedMaterials.Count -gt 0) {
+  Write-Host "selected materials: $($selectedMaterials -join ', ')"
+} else {
+  Write-Host "selected materials: none"
+}
 
 if (-not $RunVideoTask) {
   Write-Host "Skipping video task. Re-run with -RunVideoTask to exercise Seedance, retry, stitching, and preview output."
@@ -63,6 +70,7 @@ Write-Host "Starting video task..."
 $task = Invoke-Json -Method Post -Url "$ApiBaseUrl/tasks" -Body @{
   scriptId = $script.id
   ratio = "9:16"
+  editingPlanId = $plan.id
 }
 Write-Host "task started: $($task.id)"
 

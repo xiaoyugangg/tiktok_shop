@@ -1191,7 +1191,7 @@ git commit -m "refactor(api): remove legacy node ai runtime"
 - Modify: `scripts/smoke-p1.ps1`
 - Modify: `README.md`
 
-- [ ] **Step 1: Update smoke flow**
+- [x] **Step 1: Update smoke flow**
 
 Change `scripts/smoke-p1.ps1`:
 
@@ -1205,7 +1205,7 @@ start task with editingPlanId
 poll task if -RunVideoTask
 ```
 
-- [ ] **Step 2: Print plan details**
+- [x] **Step 2: Print plan details**
 
 Script should print:
 
@@ -1215,7 +1215,7 @@ planned shots: 3
 selected materials: m_example
 ```
 
-- [ ] **Step 3: Verify lightweight smoke**
+- [x] **Step 3: Verify lightweight smoke**
 
 Run:
 
@@ -1234,7 +1234,7 @@ editing plan created
 Skipping video task
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```powershell
 git add scripts/smoke-p1.ps1 README.md
