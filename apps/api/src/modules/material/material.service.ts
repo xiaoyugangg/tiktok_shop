@@ -76,6 +76,7 @@ export async function analyzeMaterial(id: string): Promise<MaterialDto | null> {
 
   const result = await callAgent<MaterialAnalyzeResponse>('/materials/analyze', {
     material_id: record.id,
+    path: path.join(STORAGE_ROOT, record.path),
     filename: record.filename,
     mime: record.mime,
     kind: record.kind,
@@ -86,10 +87,12 @@ export async function analyzeMaterial(id: string): Promise<MaterialDto | null> {
   const updated = await prisma.material.update({
     where: { id },
     data: {
+      caption: result.caption ?? null,
       summary: result.summary,
       tagsJson: JSON.stringify(result.tags),
       embeddingText: result.embedding_text,
       embeddingVectorJson: JSON.stringify(result.embedding_vector),
+      embeddingModel: result.embedding_model ?? null,
       analyzedAt: new Date(),
     },
   });
@@ -114,9 +117,11 @@ export function toDto(record: {
   path: string;
   mime: string;
   size: number;
+  caption?: string | null;
   summary?: string | null;
   tagsJson?: string | null;
   embeddingText?: string | null;
+  embeddingModel?: string | null;
   analyzedAt?: Date | null;
   productId: string | null;
   createdAt: Date;
@@ -128,9 +133,11 @@ export function toDto(record: {
     url: publicUrlForRelative(record.path),
     mime: record.mime,
     size: record.size,
+    caption: record.caption ?? null,
     summary: record.summary ?? null,
     tags: parseTags(record.tagsJson),
     embeddingText: record.embeddingText ?? null,
+    embeddingModel: record.embeddingModel ?? null,
     analyzedAt: record.analyzedAt?.toISOString() ?? null,
     productId: record.productId,
     createdAt: record.createdAt.toISOString(),

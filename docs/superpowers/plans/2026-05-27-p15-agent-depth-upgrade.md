@@ -519,7 +519,7 @@ git commit -m "feat(agent): use external embeddings for material rag"
 - Modify: `packages/shared/src/api.schema.ts`
 - Modify: `apps/web/src/pages/MaterialLibrary.tsx`
 
-- [ ] **Step 1: Extend Prisma Material**
+- [x] **Step 1: Extend Prisma Material**
 
 Add fields:
 
@@ -537,7 +537,7 @@ embeddingText
 embeddingVectorJson
 ```
 
-- [ ] **Step 2: Push schema**
+- [x] **Step 2: Push schema**
 
 Run:
 
@@ -552,7 +552,7 @@ database synced
 Prisma Client generated
 ```
 
-- [ ] **Step 3: Send file path to Python material analyzer**
+- [x] **Step 3: Send file path to Python material analyzer**
 
 When Node calls Python `/materials/analyze`, include:
 
@@ -574,7 +574,7 @@ Also update Python `MaterialAnalyzeRequest` to accept:
 path: str | None = None
 ```
 
-- [ ] **Step 4: Persist caption and embedding model**
+- [x] **Step 4: Persist caption and embedding model**
 
 Update Node material service so Python response fields save to DB:
 
@@ -588,7 +588,7 @@ embeddingModel: result.embedding_model ?? null,
 analyzedAt: new Date(),
 ```
 
-- [ ] **Step 5: Show fields in frontend**
+- [x] **Step 5: Show fields in frontend**
 
 Update Material Library to show:
 
@@ -600,7 +600,7 @@ embedding model
 analyzedAt
 ```
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run:
 
@@ -615,7 +615,7 @@ Expected:
 both pass
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add apps/api/prisma/schema.prisma apps/api/src/modules/material packages/shared apps/web/src/pages/MaterialLibrary.tsx apps/agent/src/agent_app/schemas.py

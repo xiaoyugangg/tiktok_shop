@@ -154,6 +154,16 @@ export function MaterialLibraryPage() {
                           {m.summary}
                         </Paragraph>
                       )}
+                      {m.caption && m.caption !== m.summary && (
+                        <Paragraph ellipsis={{ rows: 2 }} style={{ marginBottom: 0, fontSize: 12 }}>
+                          视觉描述：{m.caption}
+                        </Paragraph>
+                      )}
+                      {m.embeddingModel && (
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          向量模型：{m.embeddingModel}
+                        </Text>
+                      )}
                       {!!m.tags?.length && (
                         <Space size={[4, 4]} wrap>
                           {m.tags.slice(0, 8).map((tag) => (

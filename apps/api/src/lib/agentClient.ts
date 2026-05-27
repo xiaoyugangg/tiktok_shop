@@ -14,10 +14,12 @@ export interface AgentHealthResponse {
 
 export interface MaterialAnalyzeResponse {
   material_id: string;
+  caption?: string | null;
   summary: string;
   tags: string[];
   embedding_text: string;
   embedding_vector: number[];
+  embedding_model?: string | null;
   trace: AgentTraceItem[];
 }
 
