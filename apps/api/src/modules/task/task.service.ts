@@ -18,10 +18,44 @@ import type {
 export async function createTask(args: {
   scriptId: string;
   ratio: Ratio;
+  editingPlanId?: string;
 }): Promise<{ taskId: string; script: Script }> {
   const script = await prisma.script.findUnique({ where: { id: args.scriptId } });
   if (!script) throw new Error(`script ${args.scriptId} not found`);
   const payload = JSON.parse(script.payload) as Script;
+  const editingPlan = args.editingPlanId
+    ? await prisma.editingPlan.findFirst({
+        where: { id: args.editingPlanId, scriptId: script.id },
+      })
+    : null;
+  if (args.editingPlanId && !editingPlan) {
+    throw new Error(`editing plan ${args.editingPlanId} not found for script ${script.id}`);
+  }
+  const plannedByIdx = new Map<
+    number,
+    {
+      prompt: string;
+      subtitle: string;
+      bgmHint: string;
+      durationSec: number;
+      sourceMaterialId?: string | null;
+    }
+  >();
+  if (editingPlan) {
+    const parsed = JSON.parse(editingPlan.payloadJson) as {
+      shots: Array<{
+        idx: number;
+        prompt: string;
+        subtitle: string;
+        bgmHint: string;
+        durationSec: number;
+        sourceMaterialId?: string | null;
+      }>;
+    };
+    for (const shot of parsed.shots) {
+      plannedByIdx.set(shot.idx, shot);
+    }
+  }
 
   const taskId = `t_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   await prisma.videoTask.create({
@@ -34,17 +68,22 @@ export async function createTask(args: {
     },
   });
   await prisma.shot.createMany({
-    data: payload.shots.map((shot) => ({
-      id: `sh_${taskId.slice(2)}_${shot.idx}`,
-      taskId,
-      idx: shot.idx,
-      description: shot.description,
-      cameraMotion: shot.cameraMotion ?? '',
-      durationSec: shot.durationSec,
-      subtitle: shot.subtitle ?? null,
-      bgmHint: shot.bgmHint ?? null,
-      status: 'pending',
-    })),
+    data: payload.shots.map((shot) => {
+      const planned = plannedByIdx.get(shot.idx);
+      return {
+        id: `sh_${taskId.slice(2)}_${shot.idx}`,
+        taskId,
+        idx: shot.idx,
+        description: shot.description,
+        cameraMotion: shot.cameraMotion ?? '',
+        durationSec: planned?.durationSec ?? shot.durationSec,
+        prompt: planned?.prompt ?? null,
+        subtitle: planned?.subtitle ?? shot.subtitle ?? null,
+        bgmHint: planned?.bgmHint ?? shot.bgmHint ?? null,
+        sourceMaterialId: planned?.sourceMaterialId ?? null,
+        status: 'pending',
+      };
+    }),
   });
 
   emitTaskEvent(taskId, 'queued', { shotsTotal: payload.shots.length, shotsDone: 0 });

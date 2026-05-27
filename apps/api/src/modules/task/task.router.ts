@@ -22,6 +22,10 @@ taskRouter.post('/', async (req, res, next) => {
       res.status(400).json({ message: 'invalid request', issues: parsed.error.issues });
       return;
     }
+    if (env.EDITING_PLAN_REQUIRED && !parsed.data.editingPlanId) {
+      res.status(400).json({ message: 'editingPlanId is required before video generation' });
+      return;
+    }
     const { taskId, script } = await createTask(parsed.data);
     setImmediate(async () => {
       try {

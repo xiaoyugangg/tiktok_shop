@@ -16,7 +16,7 @@ export function ScriptBoard({
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
       <Card size="small">
-        <Descriptions size="small" column={1} title={<span>剧本概览</span>}>
+        <Descriptions size="small" column={1} title={<span>脚本概览</span>}>
           <Descriptions.Item label="叙事策略">{script.narrative}</Descriptions.Item>
           <Descriptions.Item label="视觉风格">{script.visualStyle}</Descriptions.Item>
           <Descriptions.Item label="画幅 / 时长">
@@ -29,6 +29,14 @@ export function ScriptBoard({
               ))}
             </Space>
           </Descriptions.Item>
+          {editingPlan && (
+            <Descriptions.Item label="智能分镜方案">
+              <Space size={4} wrap>
+                <Tag color="blue">{editingPlan.id}</Tag>
+                <Tag>{editingPlan.shots.length} 个计划分镜</Tag>
+              </Space>
+            </Descriptions.Item>
+          )}
         </Descriptions>
       </Card>
 
@@ -45,7 +53,7 @@ export function ScriptBoard({
                 title={
                   <Space size={6}>
                     <Tag color="magenta">分镜 {shot.idx + 1}</Tag>
-                    <Tag>{shot.durationSec}s</Tag>
+                    <Tag>{planned?.durationSec ?? shot.durationSec}s</Tag>
                   </Space>
                 }
               >
@@ -56,7 +64,7 @@ export function ScriptBoard({
                 </Space>
                 {shot.subtitle && (
                   <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                    字幕: {shot.subtitle}
+                    原始字幕: {shot.subtitle}
                   </Paragraph>
                 )}
 
@@ -64,21 +72,21 @@ export function ScriptBoard({
                   <Card size="small" style={{ marginTop: 12, background: '#fafafa' }}>
                     <Space direction="vertical" size={4} style={{ width: '100%' }}>
                       <Space size={4} wrap>
-                        <Tag color="blue">Agent 剪辑计划</Tag>
-                        {planned.sourceMaterialId && <Tag>推荐素材: {planned.sourceMaterialId}</Tag>}
+                        <Tag color="blue">Agent 生成前规划</Tag>
+                        {planned.sourceMaterialId && <Tag>素材: {planned.sourceMaterialId}</Tag>}
                         <Tag>{planned.durationSec}s</Tag>
                       </Space>
                       <Paragraph ellipsis={{ rows: 3 }} style={{ marginBottom: 0, fontSize: 12 }}>
-                        改写 Prompt: {planned.prompt}
+                        生成 Prompt: {planned.prompt}
                       </Paragraph>
                       <Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
-                        字幕: {planned.subtitle}
+                        计划字幕: {planned.subtitle}
                       </Paragraph>
                       <Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
                         BGM: {planned.bgmHint}
                       </Paragraph>
                       <Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
-                        原因: {planned.reason}
+                        Agent 原因: {planned.reason}
                       </Paragraph>
                     </Space>
                   </Card>

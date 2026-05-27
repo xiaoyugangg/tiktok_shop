@@ -55,28 +55,29 @@ export function NewVideoPage() {
       setScript(dto);
       setEditingPlan(null);
       setStep(1);
-      message.success('剧本生成成功');
+      message.success('脚本生成成功');
     },
     onError: (err: Error) => message.error(err.message),
   });
 
   const editingPlanMutation = useMutation({
     mutationFn: async () => {
-      if (!script) throw new Error('请先生成剧本');
+      if (!script) throw new Error('请先生成脚本');
       return createEditingPlan(script.id);
     },
     onSuccess: (plan) => {
       setEditingPlan(plan);
-      message.success('Agent 剪辑计划已生成');
+      message.success('智能分镜方案已生成');
     },
     onError: (err: Error) => message.error(err.message),
   });
 
   const startTaskMutation = useMutation({
     mutationFn: async () => {
-      if (!script) throw new Error('请先生成剧本');
+      if (!script) throw new Error('请先生成脚本');
+      if (!editingPlan) throw new Error('请先生成智能分镜方案');
       const ratio = form.getFieldValue('ratio') as Ratio;
-      return startVideoTask({ scriptId: script.id, ratio });
+      return startVideoTask({ scriptId: script.id, ratio, editingPlanId: editingPlan.id });
     },
     onSuccess: (task) => {
       message.success('视频任务已启动');
@@ -92,12 +93,14 @@ export function NewVideoPage() {
         <Title level={3} style={{ marginBottom: 4 }}>
           新建视频
         </Title>
-        <Text type="secondary">填写商品信息，生成剧本，然后启动带货视频生成任务。</Text>
+        <Text type="secondary">
+          填写商品信息，生成脚本，再由 Agent 生成智能分镜方案，最后启动带货视频生成任务。
+        </Text>
       </div>
 
       <Steps
         current={step}
-        items={[{ title: '商品信息' }, { title: '剧本预览' }, { title: '生成视频' }]}
+        items={[{ title: '商品信息' }, { title: '脚本与智能分镜' }, { title: '生成视频' }]}
       />
 
       <Card>
@@ -118,7 +121,7 @@ export function NewVideoPage() {
           >
             <Select
               mode="tags"
-              placeholder="输入卖点后按回车，例如：主动降噪、续航 30h"
+              placeholder="输入卖点后按回车，例如：主动降噪、续航30h"
               tokenSeparators={[',', ';']}
             />
           </Form.Item>
@@ -151,7 +154,7 @@ export function NewVideoPage() {
                 loading={generateMutation.isPending}
                 disabled={step !== 0}
               >
-                生成剧本
+                生成脚本
               </Button>
               {products.length > 0 && <Text type="secondary">已创建 {products.length} 个商品</Text>}
             </Space>
@@ -163,7 +166,7 @@ export function NewVideoPage() {
         <Card
           title={
             <Space>
-              <span>剧本预览</span>
+              <span>脚本预览</span>
               <Tag color="magenta">script:{script.id.slice(0, 8)}</Tag>
             </Space>
           }
@@ -184,15 +187,15 @@ export function NewVideoPage() {
                 onClick={() => editingPlanMutation.mutate()}
                 disabled={step === 2}
               >
-                智能匹配素材
+                生成智能分镜方案
               </Button>
               <Button
                 type="primary"
                 loading={startTaskMutation.isPending}
                 onClick={() => startTaskMutation.mutate()}
-                disabled={step === 2}
+                disabled={step === 2 || !editingPlan}
               >
-                一键成片
+                {editingPlan ? '一键成片' : '先生成智能分镜方案'}
               </Button>
             </Space>
           }
@@ -202,7 +205,7 @@ export function NewVideoPage() {
               <Alert
                 type="info"
                 showIcon
-                message="Agent 剪辑策略"
+                message={`Agent 智能分镜方案：${editingPlan.id}`}
                 description={editingPlan.strategy}
               />
             )}

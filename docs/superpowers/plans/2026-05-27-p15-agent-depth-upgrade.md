@@ -897,7 +897,7 @@ git commit -m "feat(agent): generate editing plans with llm graph"
 - Modify: `apps/web/src/pages/NewVideo.tsx`
 - Modify: `apps/web/src/components/ScriptBoard.tsx`
 
-- [ ] **Step 1: Add env flag**
+- [x] **Step 1: Add env flag**
 
 In `apps/api/src/env.ts`, add:
 
@@ -905,7 +905,7 @@ In `apps/api/src/env.ts`, add:
 EDITING_PLAN_REQUIRED: z.coerce.boolean().default(true);
 ```
 
-- [ ] **Step 2: Update create task request schema**
+- [x] **Step 2: Update create task request schema**
 
 Add:
 
@@ -913,7 +913,7 @@ Add:
 editingPlanId: z.string().optional();
 ```
 
-- [ ] **Step 3: Create shots from EditingPlan**
+- [x] **Step 3: Create shots from EditingPlan**
 
 Modify `createTask`:
 
@@ -940,7 +940,7 @@ sourceMaterialId: planned.sourceMaterialId,
 status: 'pending',
 ```
 
-- [ ] **Step 4: Update frontend flow**
+- [x] **Step 4: Update frontend flow**
 
 In `NewVideo.tsx`:
 
@@ -953,7 +953,7 @@ In `NewVideo.tsx`:
 startVideoTask({ scriptId: script.id, ratio, editingPlanId: editingPlan.id });
 ```
 
-- [ ] **Step 5: Update ScriptBoard**
+- [x] **Step 5: Update ScriptBoard**
 
 Show:
 
@@ -963,7 +963,7 @@ Show:
 LLM reason
 ```
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run:
 
@@ -978,7 +978,7 @@ Expected:
 both pass
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add packages/shared apps/api/src/env.ts apps/api/src/modules/task apps/web/src/api/task.ts apps/web/src/pages/NewVideo.tsx apps/web/src/components/ScriptBoard.tsx
