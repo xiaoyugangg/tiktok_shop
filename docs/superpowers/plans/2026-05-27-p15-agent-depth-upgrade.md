@@ -998,7 +998,7 @@ git commit -m "feat(app): require saved editing plan for generation"
 - Modify: `apps/api/src/modules/creation/pythonPipeline.ts`
 - Test: `apps/agent/tests/test_pipeline_graph.py`
 
-- [ ] **Step 1: Add Python request schemas**
+- [x] **Step 1: Add Python request schemas**
 
 Add:
 
@@ -1023,7 +1023,7 @@ class RestitchRequest(BaseModel):
     callback_token: str
 ```
 
-- [ ] **Step 2: Add Python endpoints**
+- [x] **Step 2: Add Python endpoints**
 
 In `main.py`:
 
@@ -1037,7 +1037,7 @@ def pipeline_restitch(req: RestitchRequest) -> PipelineRunResponse:
     return restitch_task(req)
 ```
 
-- [ ] **Step 3: Implement Python regenerate**
+- [x] **Step 3: Implement Python regenerate**
 
 Regenerate one shot:
 
@@ -1048,7 +1048,7 @@ call restitch
 callback task succeeded
 ```
 
-- [ ] **Step 4: Change Node regenerate route**
+- [x] **Step 4: Change Node regenerate route**
 
 Update `POST /api/tasks/:taskId/shots/:shotId/regenerate`:
 
@@ -1060,7 +1060,7 @@ return current task DTO
 
 Do not import Node `generateOneShot`.
 
-- [ ] **Step 5: Verify no Node legacy imports remain**
+- [x] **Step 5: Verify no Node legacy imports remain**
 
 Run:
 
@@ -1074,7 +1074,7 @@ Expected:
 no results, except removed files before deletion
 ```
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 ```powershell
 conda run --no-capture-output -n tiktop_agent_p1 python -m pytest tests/test_pipeline_graph.py -q
@@ -1088,7 +1088,7 @@ Expected:
 all pass
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add apps/agent/src/agent_app apps/api/src/modules/task apps/api/src/modules/creation

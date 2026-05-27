@@ -248,6 +248,29 @@ class PipelineRunRequest(BaseModel):
     callback_token: str
 
 
+class RegenerateShotRequest(BaseModel):
+    task_id: str
+    ratio: str
+    storage_root: str
+    shot: PipelineShotInput
+    shots: list[PipelineShotInput]
+    enable_subtitle: bool = True
+    enable_bgm: bool = False
+    callback_base_url: str
+    callback_token: str
+
+
+class RestitchRequest(BaseModel):
+    task_id: str
+    ratio: str
+    storage_root: str
+    shots: list[PipelineShotInput]
+    enable_subtitle: bool = True
+    enable_bgm: bool = False
+    callback_base_url: str
+    callback_token: str
+
+
 class PipelineRunResponse(BaseModel):
     task_id: str
     status: str

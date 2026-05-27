@@ -1,8 +1,8 @@
 from agent_app.callbacks import CallbackClient
 from pathlib import Path
 
-from agent_app.agents.pipeline_graph import run_pipeline_graph
-from agent_app.schemas import PipelineRunRequest, PipelineShotInput
+from agent_app.agents.pipeline_graph import regenerate_shot, run_pipeline_graph
+from agent_app.schemas import PipelineRunRequest, PipelineShotInput, RegenerateShotRequest
 
 
 def test_callback_client_posts_trace(monkeypatch):
@@ -57,3 +57,37 @@ def test_pipeline_graph_mock_generates_output(tmp_path: Path):
     assert result.output_path
     assert (tmp_path / result.output_path).exists()
     assert any(call[0] == "shot" and call[1]["status"] == "video_ok" for call in callback_calls)
+
+
+def test_regenerate_shot_mock_restitches_output(tmp_path: Path):
+    callback_calls = []
+
+    class FakeCallback:
+        def trace(self, **kwargs):
+            callback_calls.append(("trace", kwargs))
+
+        def shot_status(self, **kwargs):
+            callback_calls.append(("shot", kwargs))
+
+        def task_status(self, **kwargs):
+            callback_calls.append(("task", kwargs))
+
+    shot = PipelineShotInput(id="s1", idx=0, description="product close up", duration_sec=2)
+    req = RegenerateShotRequest(
+        task_id="t1",
+        ratio="9:16",
+        storage_root=str(tmp_path),
+        shot=shot,
+        shots=[shot],
+        enable_subtitle=False,
+        enable_bgm=False,
+        callback_base_url="http://node.local",
+        callback_token="token",
+    )
+
+    result = regenerate_shot(req, callback=FakeCallback())
+
+    assert result.status == "succeeded"
+    assert result.output_path
+    assert (tmp_path / result.output_path).exists()
+    assert any(call[0] == "trace" and call[1]["stage"] == "shot.regenerate.success" for call in callback_calls)

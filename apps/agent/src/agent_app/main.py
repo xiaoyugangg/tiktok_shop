@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from agent_app.agents.analytics_agent import build_mock_analytics
 from agent_app.agents.editing_agent import build_editing_plan
 from agent_app.agents.material_agent import analyze_material, search_materials
-from agent_app.agents.pipeline_graph import run_pipeline_graph
+from agent_app.agents.pipeline_graph import regenerate_shot, restitch_task, run_pipeline_graph
 from agent_app.agents.retry_agent import decide_retry
 from agent_app.config import settings
 from agent_app.media.postprocess import run_postprocess
@@ -25,6 +25,8 @@ from agent_app.schemas import (
     PipelineRunResponse,
     PostprocessRequest,
     PostprocessResponse,
+    RegenerateShotRequest,
+    RestitchRequest,
     RetryDecisionRequest,
     RetryDecisionResponse,
     ScriptGenerateRequest,
@@ -77,6 +79,16 @@ def video_clip(req: ClipGenerateRequest) -> ClipGenerateResponse:
 @app.post("/pipeline/run", response_model=PipelineRunResponse)
 def pipeline_run(req: PipelineRunRequest) -> PipelineRunResponse:
     return run_pipeline_graph(req)
+
+
+@app.post("/pipeline/regenerate-shot", response_model=PipelineRunResponse)
+def pipeline_regenerate_shot(req: RegenerateShotRequest) -> PipelineRunResponse:
+    return regenerate_shot(req)
+
+
+@app.post("/pipeline/restitch", response_model=PipelineRunResponse)
+def pipeline_restitch(req: RestitchRequest) -> PipelineRunResponse:
+    return restitch_task(req)
 
 
 @app.post("/media/postprocess", response_model=PostprocessResponse)

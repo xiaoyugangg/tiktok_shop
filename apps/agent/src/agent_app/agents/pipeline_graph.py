@@ -14,6 +14,8 @@ from agent_app.schemas import (
     PipelineRunResponse,
     PipelineShotInput,
     PostprocessRequest,
+    RegenerateShotRequest,
+    RestitchRequest,
     RetryDecisionRequest,
     SubtitleCue,
     TraceItem,
@@ -190,6 +192,110 @@ def finish_node(state: PipelineState) -> PipelineState:
     )
     state["trace"].append(TraceItem(stage="pipeline.done", message="Python pipeline completed"))
     return state
+
+
+def _clip_abs_from_rel(storage_root: str, clip_path: str) -> str:
+    return str(Path(storage_root) / clip_path)
+
+
+def _subtitle_cues(shots: list[PipelineShotInput]) -> list[SubtitleCue]:
+    cursor = 0.0
+    cues: list[SubtitleCue] = []
+    for shot in shots:
+        start = cursor
+        cursor += float(shot.duration_sec)
+        cues.append(SubtitleCue(start_sec=start, end_sec=cursor, text=shot.subtitle or shot.description[:24]))
+    return cues
+
+
+def restitch_task(req: RestitchRequest, callback: object | None = None) -> PipelineRunResponse:
+    cb = callback or CallbackClient(req.callback_base_url, req.callback_token)
+    cb.task_status(task_id=req.task_id, status="stitching", stage="Python pipeline restitching video")
+    clips = [
+        _clip_abs_from_rel(req.storage_root, shot.clip_path)
+        for shot in sorted(req.shots, key=lambda item: item.idx)
+        if shot.clip_path
+    ]
+    if not clips:
+        raise RuntimeError("no clips available for restitch")
+
+    out_abs = Path(req.storage_root) / "tasks" / req.task_id / "output.mp4"
+    concat_clips(clips, str(out_abs), req.ratio)
+    output_rel = _rel(req.storage_root, str(out_abs))
+
+    if req.enable_subtitle or req.enable_bgm:
+        post_abs = Path(req.storage_root) / "tasks" / req.task_id / "output_p1.mp4"
+        run_postprocess(
+            PostprocessRequest(
+                input_path=str(out_abs),
+                output_path=str(post_abs),
+                ratio=req.ratio,
+                subtitles=_subtitle_cues(req.shots),
+                enable_subtitle=req.enable_subtitle,
+                enable_bgm=req.enable_bgm,
+            )
+        )
+        output_rel = _rel(req.storage_root, str(post_abs))
+
+    cb.trace(task_id=req.task_id, stage="pipeline.restitch.done", message="Restitched clips in Python")
+    cb.task_status(
+        task_id=req.task_id,
+        status="succeeded",
+        output_path=output_rel,
+        stage="Completed",
+    )
+    return PipelineRunResponse(task_id=req.task_id, status="succeeded", output_path=output_rel, trace=[])
+
+
+def regenerate_shot(req: RegenerateShotRequest, callback: object | None = None) -> PipelineRunResponse:
+    cb = callback or CallbackClient(req.callback_base_url, req.callback_token)
+    cb.task_status(task_id=req.task_id, status="shots_running", stage="Python regenerating single shot")
+    shots_dir = Path(req.storage_root) / "tasks" / req.task_id / "shots"
+    shots_dir.mkdir(parents=True, exist_ok=True)
+    clip_abs = shots_dir / f"shot_{req.shot.idx}.mp4"
+    prompt = req.shot.prompt or req.shot.description
+    cb.trace(
+        task_id=req.task_id,
+        shot_id=req.shot.id,
+        stage="shot.regenerate.start",
+        message=f"Regenerating shot {req.shot.idx + 1} in Python",
+        payload={"prompt": prompt},
+    )
+    generate_clip(
+        ClipGenerateRequest(
+            prompt=prompt,
+            ratio=req.ratio,
+            duration_sec=int(req.shot.duration_sec),
+            image_path=req.shot.source_material_path,
+            output_path=str(clip_abs),
+        )
+    )
+    clip_rel = _rel(req.storage_root, str(clip_abs))
+    cb.shot_status(shot_id=req.shot.id, status="video_ok", clip_path=clip_rel)
+    updated_shots = [
+        shot.model_copy(update={"clip_path": clip_rel}) if shot.id == req.shot.id else shot
+        for shot in req.shots
+    ]
+    cb.trace(
+        task_id=req.task_id,
+        shot_id=req.shot.id,
+        stage="shot.regenerate.success",
+        message=f"Shot {req.shot.idx + 1} regenerated",
+        payload={"clip_path": clip_rel},
+    )
+    return restitch_task(
+        RestitchRequest(
+            task_id=req.task_id,
+            ratio=req.ratio,
+            storage_root=req.storage_root,
+            shots=updated_shots,
+            enable_subtitle=req.enable_subtitle,
+            enable_bgm=req.enable_bgm,
+            callback_base_url=req.callback_base_url,
+            callback_token=req.callback_token,
+        ),
+        callback=cb,
+    )
 
 
 def build_pipeline_graph():

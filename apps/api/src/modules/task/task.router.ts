@@ -7,8 +7,8 @@ import { env } from '../../env';
 import { logger } from '../../lib/logger';
 import { prisma } from '../../lib/prisma';
 import { STORAGE_ROOT } from '../../lib/storage';
-import { generateOneShot, restitchTask, runPipeline } from '../creation/pipeline';
-import { runPythonPipeline } from '../creation/pythonPipeline';
+import { runPipeline } from '../creation/pipeline';
+import { runPythonPipeline, runPythonRegenerateShot } from '../creation/pythonPipeline';
 
 import { handleTaskSse } from './sse';
 import { createTask, getTaskDto, setTaskStatus, updateShot } from './task.service';
@@ -101,9 +101,11 @@ taskRouter.post('/:taskId/shots/:shotId/regenerate', async (req, res, next) => {
           status: 'shots_running',
           stage: 'Regenerating single shot',
         });
-        await generateOneShot({ taskId: task.id, shotId: req.params.shotId, ratio: task.ratio });
-        await setTaskStatus({ taskId: task.id, status: 'stitching', stage: 'Restitching video' });
-        await restitchTask(task.id, task.ratio);
+        await runPythonRegenerateShot({
+          taskId: task.id,
+          shotId: req.params.shotId,
+          ratio: task.ratio,
+        });
       } catch (err) {
         logger.error({ err, taskId: task.id, shotId: req.params.shotId }, 'shot regenerate failed');
         await setTaskStatus({
