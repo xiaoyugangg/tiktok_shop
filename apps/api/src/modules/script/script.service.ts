@@ -1,4 +1,11 @@
-import { ScriptSchema, type Ratio, type Script, type ScriptDto } from '@tiktop/shared';
+import {
+  ScriptSchema,
+  type EditingPlanDto,
+  type PlannedShotDto,
+  type Ratio,
+  type Script,
+  type ScriptDto,
+} from '@tiktop/shared';
 
 import { callAgent, type ScriptGenerateResponse } from '../../lib/agentClient';
 import { prisma } from '../../lib/prisma';
@@ -88,6 +95,61 @@ export async function getScript(id: string): Promise<ScriptDto | null> {
     id: record.id,
     productId: record.productId,
     payload,
+    createdAt: record.createdAt.toISOString(),
+  };
+}
+
+export async function saveEditingPlan(args: {
+  scriptId: string;
+  strategy: string;
+  trace: EditingPlanDto['trace'];
+  shots: PlannedShotDto[];
+}): Promise<EditingPlanDto> {
+  const id = `ep_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  const record = await prisma.editingPlan.create({
+    data: {
+      id,
+      scriptId: args.scriptId,
+      strategy: args.strategy,
+      payloadJson: JSON.stringify({ shots: args.shots }),
+      traceJson: JSON.stringify(args.trace),
+    },
+  });
+  return toEditingPlanDto(record);
+}
+
+export async function listEditingPlans(scriptId: string): Promise<EditingPlanDto[]> {
+  const records = await prisma.editingPlan.findMany({
+    where: { scriptId },
+    orderBy: { createdAt: 'desc' },
+  });
+  return records.map(toEditingPlanDto);
+}
+
+export async function getLatestEditingPlan(scriptId: string): Promise<EditingPlanDto | null> {
+  const record = await prisma.editingPlan.findFirst({
+    where: { scriptId },
+    orderBy: { createdAt: 'desc' },
+  });
+  return record ? toEditingPlanDto(record) : null;
+}
+
+function toEditingPlanDto(record: {
+  id: string;
+  scriptId: string;
+  strategy: string;
+  payloadJson: string;
+  traceJson: string | null;
+  createdAt: Date;
+}): EditingPlanDto {
+  const payload = JSON.parse(record.payloadJson) as { shots: PlannedShotDto[] };
+  const trace = record.traceJson ? (JSON.parse(record.traceJson) as EditingPlanDto['trace']) : [];
+  return {
+    id: record.id,
+    scriptId: record.scriptId,
+    strategy: record.strategy,
+    shots: payload.shots,
+    trace,
     createdAt: record.createdAt.toISOString(),
   };
 }

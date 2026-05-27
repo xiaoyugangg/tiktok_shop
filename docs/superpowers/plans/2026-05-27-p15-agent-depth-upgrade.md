@@ -634,7 +634,7 @@ git commit -m "feat(api): persist material caption embeddings"
 - Modify: `apps/api/src/modules/script/script.service.ts`
 - Modify: `apps/api/src/modules/script/script.router.ts`
 
-- [ ] **Step 1: Add Prisma model**
+- [x] **Step 1: Add Prisma model**
 
 Add:
 
@@ -657,7 +657,7 @@ Add relation to `Script`:
 editingPlans EditingPlan[]
 ```
 
-- [ ] **Step 2: Push schema**
+- [x] **Step 2: Push schema**
 
 Run:
 
@@ -671,7 +671,7 @@ Expected:
 database synced
 ```
 
-- [ ] **Step 3: Define shared DTO**
+- [x] **Step 3: Define shared DTO**
 
 Add a DTO shape:
 
@@ -696,7 +696,7 @@ export const EditingPlanDtoSchema = z.object({
 });
 ```
 
-- [ ] **Step 4: Persist plan in script router**
+- [x] **Step 4: Persist plan in script router**
 
 Change `POST /api/scripts/:id/editing-plan`:
 
@@ -707,7 +707,7 @@ save EditingPlan payloadJson
 return saved plan with id
 ```
 
-- [ ] **Step 5: Add get/list endpoints**
+- [x] **Step 5: Add get/list endpoints**
 
 Add:
 
@@ -718,7 +718,7 @@ GET /api/scripts/:id/editing-plans/latest
 
 These help frontend recover previous generated plan after refresh.
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run:
 
@@ -733,7 +733,7 @@ Expected:
 both pass
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```powershell
 git add apps/api/prisma/schema.prisma apps/api/src/modules/script packages/shared

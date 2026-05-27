@@ -68,9 +68,12 @@ export const PlannedShotDtoSchema = z.object({
 export type PlannedShotDto = z.infer<typeof PlannedShotDtoSchema>;
 
 export const EditingPlanDtoSchema = z.object({
+  id: z.string(),
+  scriptId: z.string(),
   shots: z.array(PlannedShotDtoSchema),
   strategy: z.string(),
   trace: z.array(AgentTraceItemSchema),
+  createdAt: z.string(),
 });
 export type EditingPlanDto = z.infer<typeof EditingPlanDtoSchema>;
 

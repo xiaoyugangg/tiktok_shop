@@ -42,14 +42,27 @@ model Product {
 }
 
 model Script {
-  id         String      @id @default(cuid())
-  productId  String
-  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  payload    String
-  createdAt  DateTime    @default(now())
-  tasks      VideoTask[]
+  id           String        @id @default(cuid())
+  productId    String
+  product      Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  payload      String
+  createdAt    DateTime      @default(now())
+  tasks        VideoTask[]
+  editingPlans EditingPlan[]
 
   @@index([productId])
+}
+
+model EditingPlan {
+  id          String   @id @default(cuid())
+  scriptId    String
+  script      Script   @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  strategy    String
+  payloadJson String
+  traceJson   String?
+  createdAt   DateTime @default(now())
+
+  @@index([scriptId])
 }
 
 model VideoTask {

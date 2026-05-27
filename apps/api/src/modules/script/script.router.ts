@@ -1,10 +1,16 @@
-import { GenerateScriptReqSchema, type EditingPlanDto } from '@tiktop/shared';
+import { GenerateScriptReqSchema } from '@tiktop/shared';
 import { Router } from 'express';
 
 import { callAgent, type EditingPlanResponse } from '../../lib/agentClient';
 import { prisma } from '../../lib/prisma';
 
-import { createScriptForProduct, getScript } from './script.service';
+import {
+  createScriptForProduct,
+  getLatestEditingPlan,
+  getScript,
+  listEditingPlans,
+  saveEditingPlan,
+} from './script.service';
 
 export const scriptRouter: Router = Router();
 
@@ -27,6 +33,27 @@ scriptRouter.get('/:id', async (req, res, next) => {
     const dto = await getScript(req.params.id);
     if (!dto) {
       res.status(404).json({ message: 'script not found' });
+      return;
+    }
+    res.json(dto);
+  } catch (err) {
+    next(err);
+  }
+});
+
+scriptRouter.get('/:id/editing-plans', async (req, res, next) => {
+  try {
+    res.json(await listEditingPlans(req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+scriptRouter.get('/:id/editing-plans/latest', async (req, res, next) => {
+  try {
+    const dto = await getLatestEditingPlan(req.params.id);
+    if (!dto) {
+      res.status(404).json({ message: 'editing plan not found' });
       return;
     }
     res.json(dto);
@@ -91,14 +118,17 @@ scriptRouter.post('/:id/editing-plan', async (req, res, next) => {
       materials: script.product.materials.map((material) => ({
         material_id: material.id,
         kind: material.kind,
+        caption: material.caption,
         summary: material.summary ?? material.filename,
         tags: parseJsonStringArray(material.tagsJson),
         embedding_text: material.embeddingText ?? '',
         embedding_vector: parseJsonNumberArray(material.embeddingVectorJson),
+        embedding_model: material.embeddingModel,
       })),
     });
 
-    const dto: EditingPlanDto = {
+    const dto = await saveEditingPlan({
+      scriptId: script.id,
       strategy: result.strategy,
       trace: result.trace,
       shots: result.shots.map((shot) => ({
@@ -110,7 +140,7 @@ scriptRouter.post('/:id/editing-plan', async (req, res, next) => {
         sourceMaterialId: shot.source_material_id,
         reason: shot.reason,
       })),
-    };
+    });
 
     res.json(dto);
   } catch (err) {
