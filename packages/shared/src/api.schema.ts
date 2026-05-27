@@ -10,9 +10,11 @@ export const MaterialDtoSchema = z.object({
   url: z.string(),
   mime: z.string(),
   size: z.number().int().nonnegative(),
+  caption: z.string().nullable().optional(),
   summary: z.string().nullable().optional(),
   tags: z.array(z.string()).optional(),
   embeddingText: z.string().nullable().optional(),
+  embeddingModel: z.string().nullable().optional(),
   analyzedAt: z.string().nullable().optional(),
   productId: z.string().nullable().optional(),
   createdAt: z.string(),
@@ -75,6 +77,7 @@ export type EditingPlanDto = z.infer<typeof EditingPlanDtoSchema>;
 export const CreateTaskReqSchema = z.object({
   scriptId: z.string(),
   ratio: RatioSchema,
+  editingPlanId: z.string().optional(),
 });
 export type CreateTaskReq = z.infer<typeof CreateTaskReqSchema>;
 

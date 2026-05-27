@@ -174,7 +174,7 @@ The implementation should use the same `ARK_API_KEY` and `ARK_BASE_URL` already 
 - Modify: `packages/shared/src/api.schema.ts`
 - Test: `apps/agent/tests/test_config.py` if config tests exist, otherwise schema tests in related agent tests.
 
-- [ ] **Step 1: Add Python settings fields**
+- [x] **Step 1: Add Python settings fields**
 
 Update `apps/agent/src/agent_app/config.py` so settings include:
 
@@ -189,7 +189,7 @@ Expected behavior:
 - If `ark_vision_model` is missing, caption provider returns deterministic fallback caption.
 - If `ark_embedding_model` is missing, embedding provider raises a clear error in live mode and uses deterministic fallback only in mock mode.
 
-- [ ] **Step 2: Add Python schemas**
+- [x] **Step 2: Add Python schemas**
 
 Add these schemas to `apps/agent/src/agent_app/schemas.py`:
 
@@ -222,7 +222,7 @@ class MaterialAnalyzeResponse(BaseModel):
 
 Keep backward-compatible field names already used by Node.
 
-- [ ] **Step 3: Add shared CreateTask request field**
+- [x] **Step 3: Add shared CreateTask request field**
 
 In shared task API schema, add:
 
@@ -235,7 +235,7 @@ Expected behavior:
 - API can still typecheck during migration.
 - Later task will enforce it when `EDITING_PLAN_REQUIRED=true`.
 
-- [ ] **Step 4: Add `.env.example` entries**
+- [x] **Step 4: Add `.env.example` entries**
 
 Add:
 
@@ -246,7 +246,7 @@ MATERIAL_RAG_TOP_K=3
 EDITING_PLAN_REQUIRED=true
 ```
 
-- [ ] **Step 5: Verify schemas**
+- [x] **Step 5: Verify schemas**
 
 Run:
 
@@ -262,7 +262,7 @@ typecheck passes
 health tests pass
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add .env.example packages/shared apps/agent/src/agent_app/config.py apps/agent/src/agent_app/schemas.py

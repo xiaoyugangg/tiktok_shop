@@ -15,6 +15,7 @@ class TraceItem(BaseModel):
 
 class MaterialAnalyzeRequest(BaseModel):
     material_id: str
+    path: str | None = None
     filename: str
     mime: str
     kind: str
@@ -24,11 +25,28 @@ class MaterialAnalyzeRequest(BaseModel):
 
 class MaterialAnalyzeResponse(BaseModel):
     material_id: str
+    caption: str | None = None
     summary: str
     tags: list[str]
     embedding_text: str
     embedding_vector: list[float]
+    embedding_model: str | None = None
     trace: list[TraceItem]
+
+
+class RagCandidate(BaseModel):
+    material_id: str
+    kind: str
+    caption: str | None = None
+    summary: str
+    tags: list[str] = Field(default_factory=list)
+    score: float
+
+
+class ShotRagContext(BaseModel):
+    idx: int
+    query: str
+    candidates: list[RagCandidate] = Field(default_factory=list)
 
 
 class MaterialSearchRequest(BaseModel):
@@ -75,10 +93,12 @@ class ProductInput(BaseModel):
 class MaterialSummary(BaseModel):
     material_id: str
     kind: str
+    caption: str | None = None
     summary: str
     tags: list[str] = Field(default_factory=list)
     embedding_text: str = ""
     embedding_vector: list[float] = Field(default_factory=list)
+    embedding_model: str | None = None
 
 
 class EditingPlanRequest(BaseModel):
