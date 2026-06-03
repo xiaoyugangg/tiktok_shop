@@ -36,7 +36,12 @@ def _rel(storage_root: str, abs_path: str) -> str:
 
 
 def _shot_image_path(req: PipelineRunRequest, shot: PipelineShotInput) -> str | None:
-    return shot.source_material_path or (req.product_main_material_path if shot.idx == 0 else None)
+    if shot.source_material_path:
+        return shot.source_material_path
+    if not req.product_main_material_path or not req.shots:
+        return None
+    first_idx = min(item.idx for item in req.shots)
+    return req.product_main_material_path if shot.idx == first_idx else None
 
 
 def start_node(state: PipelineState) -> PipelineState:
@@ -261,17 +266,61 @@ def regenerate_shot(req: RegenerateShotRequest, callback: object | None = None) 
         message=f"Regenerating shot {req.shot.idx + 1} in Python",
         payload={"prompt": prompt},
     )
-    generate_clip(
-        ClipGenerateRequest(
-            prompt=prompt,
-            ratio=req.ratio,
-            duration_sec=int(req.shot.duration_sec),
-            image_path=req.shot.source_material_path,
-            output_path=str(clip_abs),
+    final_prompt = prompt
+    final_duration = int(req.shot.duration_sec)
+    try:
+        generate_clip(
+            ClipGenerateRequest(
+                prompt=final_prompt,
+                ratio=req.ratio,
+                duration_sec=final_duration,
+                image_path=_shot_image_path(req, req.shot),
+                output_path=str(clip_abs),
+            )
         )
-    )
+    except Exception as err:
+        msg = str(err)
+        decision = decide_retry(
+            RetryDecisionRequest(
+                task_id=req.task_id,
+                shot_id=req.shot.id,
+                shot_idx=req.shot.idx,
+                error_message=msg,
+                retry_count=req.shot.retry_count,
+                prompt=prompt,
+                duration_sec=int(req.shot.duration_sec),
+            )
+        )
+        cb.trace(
+            task_id=req.task_id,
+            shot_id=req.shot.id,
+            stage="agent.retry.decision",
+            message=decision.reason,
+            payload=decision.model_dump(),
+        )
+        if not decision.should_retry:
+            cb.shot_status(shot_id=req.shot.id, status="failed", error_msg=msg)
+            raise
+        final_prompt = decision.patch.prompt or prompt
+        final_duration = decision.patch.duration_sec or int(req.shot.duration_sec)
+        generate_clip(
+            ClipGenerateRequest(
+                prompt=final_prompt,
+                ratio=req.ratio,
+                duration_sec=final_duration,
+                image_path=_shot_image_path(req, req.shot),
+                output_path=str(clip_abs),
+            )
+        )
     clip_rel = _rel(req.storage_root, str(clip_abs))
-    cb.shot_status(shot_id=req.shot.id, status="video_ok", clip_path=clip_rel)
+    cb.shot_status(
+        shot_id=req.shot.id,
+        status="video_ok",
+        clip_path=clip_rel,
+        prompt=final_prompt,
+        duration_sec=final_duration,
+        retry_count_increment=1 if final_prompt != prompt or final_duration != int(req.shot.duration_sec) else 0,
+    )
     updated_shots = [
         shot.model_copy(update={"clip_path": clip_rel}) if shot.id == req.shot.id else shot
         for shot in req.shots

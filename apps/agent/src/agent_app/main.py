@@ -4,6 +4,7 @@ from agent_app.agents.analytics_agent import build_mock_analytics
 from agent_app.agents.editing_agent import build_editing_plan
 from agent_app.agents.material_agent import analyze_material, search_materials
 from agent_app.agents.pipeline_graph import regenerate_shot, restitch_task, run_pipeline_graph
+from agent_app.agents.reference_video_agent import analyze_reference_video
 from agent_app.agents.retry_agent import decide_retry
 from agent_app.config import settings
 from agent_app.media.postprocess import run_postprocess
@@ -25,6 +26,8 @@ from agent_app.schemas import (
     PipelineRunResponse,
     PostprocessRequest,
     PostprocessResponse,
+    ReferenceVideoAnalysisResponse,
+    ReferenceVideoAnalyzeRequest,
     RegenerateShotRequest,
     RestitchRequest,
     RetryDecisionRequest,
@@ -69,6 +72,11 @@ def analytics_mock(req: AnalyticsRequest) -> AnalyticsResponse:
 @app.post("/scripts/generate", response_model=ScriptGenerateResponse)
 def script_generate(req: ScriptGenerateRequest) -> ScriptGenerateResponse:
     return generate_script(req)
+
+
+@app.post("/references/analyze", response_model=ReferenceVideoAnalysisResponse)
+def reference_analyze(req: ReferenceVideoAnalyzeRequest) -> ReferenceVideoAnalysisResponse:
+    return analyze_reference_video(req)
 
 
 @app.post("/video/clip", response_model=ClipGenerateResponse)

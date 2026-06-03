@@ -12,6 +12,46 @@ from agent_app.schemas import (
 )
 
 
+def _clamp_duration(value: int | float | str | None) -> int:
+    try:
+        parsed = round(float(value if value is not None else 4))
+    except (TypeError, ValueError):
+        parsed = 4
+    return max(4, min(12, parsed))
+
+
+def _normalize_script_payload(data: dict, ratio: str) -> dict:
+    normalized_shots = []
+    for idx, raw in enumerate((data.get("shots") or [])[:3]):
+        if not isinstance(raw, dict):
+            continue
+        normalized_shots.append(
+            {
+                "idx": idx,
+                "description": str(raw.get("description") or f"展示商品卖点 {idx + 1}"),
+                "camera_motion": str(raw.get("camera_motion") or raw.get("cameraMotion") or ""),
+                "subtitle": str(raw.get("subtitle") or ""),
+                "bgm_hint": str(raw.get("bgm_hint") or raw.get("bgmHint") or ""),
+                "duration_sec": _clamp_duration(raw.get("duration_sec") or raw.get("durationSec")),
+            }
+        )
+    if not normalized_shots:
+        normalized_shots.append(
+            {
+                "idx": 0,
+                "description": "展示商品外观、核心卖点和使用场景",
+                "camera_motion": "推进",
+                "subtitle": "",
+                "bgm_hint": "轻快商业音乐",
+                "duration_sec": 4,
+            }
+        )
+    data["ratio"] = ratio
+    data["shots"] = normalized_shots
+    data["constraints"] = list(data.get("constraints") or [])
+    return data
+
+
 def chat_json(system_prompt: str, user_payload: dict, stage: str) -> dict:
     if settings.model_mode == "mock" or not settings.ark_api_key or not settings.ark_text_model:
         product = user_payload["product"]
@@ -32,7 +72,7 @@ def chat_json(system_prompt: str, user_payload: dict, stage: str) -> dict:
                     ),
                     "subtitle": subtitle,
                     "bgm_hint": shot.get("bgm_hint") or "upbeat commercial",
-                    "duration_sec": max(2, min(12, int(shot.get("duration_sec", 4)))),
+                    "duration_sec": max(4, min(12, int(shot.get("duration_sec", 4)))),
                     "source_material_id": selected,
                     "reason": "Mock LLM selected the top RAG candidate and rewrote the shot prompt.",
                 }
@@ -53,7 +93,7 @@ def chat_json(system_prompt: str, user_payload: dict, stage: str) -> dict:
         f"{settings.ark_base_url}/chat/completions",
         headers=headers,
         json=payload,
-        timeout=60,
+        timeout=settings.ark_text_timeout_sec,
     )
     resp.raise_for_status()
     return json.loads(resp.json()["choices"][0]["message"]["content"])
@@ -62,10 +102,13 @@ def chat_json(system_prompt: str, user_payload: dict, stage: str) -> dict:
 def _mock_script(req: ScriptGenerateRequest) -> ScriptGenerateResponse:
     points = req.product.selling_points[:3] or [req.product.title]
     secondary_points = " / ".join(points[1:]) or points[0]
+    reference = req.reference_analysis
+    hook = reference.hook_type if reference else "商品特写"
+    template = reference.reusable_template if reference else "吸引注意 -> 场景共鸣 -> 行动召唤"
     shots = [
         ScriptShotOutput(
             idx=0,
-            description=f"商品特写展示「{req.product.title}」外观与质感，开场快速吸引注意。",
+            description=f"参考「{hook}」打法，展示「{req.product.title}」外观与核心使用场景，开场快速吸引注意。",
             camera_motion="推进 + 轻微环绕",
             subtitle=req.product.title,
             bgm_hint="轻快流行",
@@ -89,12 +132,18 @@ def _mock_script(req: ScriptGenerateRequest) -> ScriptGenerateResponse:
         ),
     ]
     return ScriptGenerateResponse(
-        narrative=f"围绕「{req.product.title}」展开三段式带货叙事：吸引注意 -> 场景共鸣 -> 行动召唤。",
-        visual_style="明亮通透、产品居中、字幕清晰、节奏紧凑",
+        narrative=f"围绕「{req.product.title}」展开三段式带货叙事，参考模板：{template}。",
+        visual_style=reference.visual_style if reference else "明亮通透、产品居中、字幕清晰、节奏紧凑",
         ratio=req.ratio,
         shots=shots,
-        constraints=["总时长不超过 15 秒", "避免真实人脸", "字幕简短有力", f"画幅:{req.ratio}"],
-        trace=[TraceItem(stage="model.script.mock", message="Generated mock script in Python provider")],
+        constraints=["单镜头时长 4-12 秒", "避免真实人脸", "字幕简短有力", f"画幅:{req.ratio}"],
+        trace=[
+            TraceItem(
+                stage="model.script.mock",
+                message="Generated mock script in Python provider",
+                payload={"reference_analysis_id": reference.id if reference else None},
+            )
+        ],
     )
 
 
@@ -104,8 +153,10 @@ def generate_script(req: ScriptGenerateRequest) -> ScriptGenerateResponse:
 
     system_prompt = (
         "你是电商短视频编导。请严格输出 JSON，字段包括 narrative, visual_style, ratio, "
-        "shots, constraints。shots 每项包含 idx, description, camera_motion, subtitle, "
-        "bgm_hint, duration_sec。总时长不超过 15 秒。"
+        "shots, constraints。shots 固定输出 3 个，每项包含 idx, description, camera_motion, subtitle, "
+        "bgm_hint, duration_sec。每个分镜 duration_sec 必须为 4-12 秒，不限制总时长。"
+        "如果提供 reference_analysis，请复用其 Hook 手法、分镜结构、字幕风格、CTA 和可复用模板，"
+        "但必须改写为当前商品，不能照抄。"
     )
     user_prompt = json.dumps(
         {
@@ -114,6 +165,7 @@ def generate_script(req: ScriptGenerateRequest) -> ScriptGenerateResponse:
             "target_audience": req.product.target_audience,
             "scene": req.product.scene,
             "ratio": req.ratio,
+            "reference_analysis": req.reference_analysis.model_dump() if req.reference_analysis else None,
         },
         ensure_ascii=False,
     )
@@ -134,13 +186,22 @@ def generate_script(req: ScriptGenerateRequest) -> ScriptGenerateResponse:
                 f"{settings.ark_base_url}/chat/completions",
                 headers=headers,
                 json=payload,
-                timeout=60,
+                timeout=settings.ark_text_timeout_sec,
             )
             resp.raise_for_status()
             raw = resp.json()["choices"][0]["message"]["content"]
             data = json.loads(raw)
+            data = _normalize_script_payload(data, req.ratio)
             data["trace"] = [
-                TraceItem(stage="model.script.live", message="Generated script with Ark text model").model_dump()
+                TraceItem(
+                    stage="model.script.live",
+                    message="Generated script with Ark text model",
+                    payload={
+                        "reference_analysis_id": req.reference_analysis.id
+                        if req.reference_analysis
+                        else None
+                    },
+                ).model_dump()
             ]
             return ScriptGenerateResponse.model_validate(data)
         except (httpx.HTTPError, KeyError, json.JSONDecodeError, ValidationError) as err:

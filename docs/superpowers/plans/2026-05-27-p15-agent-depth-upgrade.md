@@ -1251,7 +1251,7 @@ git commit -m "test: update p1 smoke for editing plans"
 - Modify: `docs/项目讲解.md`
 - Modify: `docs/known-issues.md`
 
-- [ ] **Step 1: Update terminology**
+- [x] **Step 1: Update terminology**
 
 Use:
 
@@ -1268,7 +1268,7 @@ LLM performs professional video editing
 LLM directly edits generated video files
 ```
 
-- [ ] **Step 2: Add final architecture diagram**
+- [x] **Step 2: Add final architecture diagram**
 
 Add:
 
@@ -1285,7 +1285,7 @@ flowchart LR
   Video --> FFmpeg[FFmpeg stitching/postprocess]
 ```
 
-- [ ] **Step 3: Explain Node cleanup**
+- [x] **Step 3: Explain Node cleanup**
 
 Document:
 
@@ -1294,7 +1294,7 @@ Node is API gateway and database owner.
 Python is the only AI runtime.
 ```
 
-- [ ] **Step 4: Explain external embedding**
+- [x] **Step 4: Explain external embedding**
 
 Document:
 
@@ -1304,12 +1304,14 @@ Vectors are used for retrieval.
 Only caption/summary/tags/score are included in LLM context.
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit skipped by user request**
 
 ```powershell
 git add README.md docs/项目讲解.md docs/known-issues.md
 git commit -m "docs: describe p15 rag editing workflow"
 ```
+
+Skipped on 2026-05-28 because the user explicitly requested creating the new version without committing.
 
 ---
 
@@ -1319,7 +1321,7 @@ git commit -m "docs: describe p15 rag editing workflow"
 
 - No planned source modifications unless verification finds issues.
 
-- [ ] **Step 1: Run Python tests**
+- [x] **Step 1: Run Python tests**
 
 ```powershell
 conda run --no-capture-output -n tiktop_agent_p1 python -m pytest --basetemp D:\tiktop_shop\.codex\pytest-p15-final
@@ -1331,7 +1333,7 @@ Expected:
 all tests pass
 ```
 
-- [ ] **Step 2: Run Python lint**
+- [x] **Step 2: Run Python lint**
 
 ```powershell
 pnpm lint:agent
@@ -1343,7 +1345,7 @@ Expected:
 All checks passed
 ```
 
-- [ ] **Step 3: Run Node/Web checks**
+- [x] **Step 3: Run Node/Web checks**
 
 ```powershell
 pnpm typecheck
@@ -1371,6 +1373,8 @@ editing plan created
 video task skipped unless -RunVideoTask
 ```
 
+Attempted on 2026-05-28, but `http://127.0.0.1:8787/api/health` was unavailable in this Codex shell. Static verification passed; smoke should be rerun after starting `pnpm dev:agent` and `pnpm dev:api` in normal terminals.
+
 - [ ] **Step 5: Run full live smoke if API quota is available**
 
 ```powershell
@@ -1384,7 +1388,9 @@ task succeeded
 outputUrl printed
 ```
 
-- [ ] **Step 6: Commit final verification notes if docs changed**
+Skipped on 2026-05-28 to avoid consuming video quota during the no-commit version-prep pass.
+
+- [x] **Step 6: Commit final verification notes skipped by user request**
 
 ```powershell
 git status --short

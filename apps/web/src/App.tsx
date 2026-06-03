@@ -5,12 +5,14 @@ import { AnalyticsPage } from './pages/Analytics';
 import { MaterialLibraryPage } from './pages/MaterialLibrary';
 import { NewVideoPage } from './pages/NewVideo';
 import { PreviewPage } from './pages/Preview';
+import { ReferenceVideosPage } from './pages/ReferenceVideos';
 import { TaskDetailPage } from './pages/TaskDetail';
 
 const { Header, Content } = Layout;
 
 const menuItems = [
   { key: '/materials', label: <Link to="/materials">素材库</Link> },
+  { key: '/references', label: <Link to="/references">参考视频</Link> },
   { key: '/new', label: <Link to="/new">新建视频</Link> },
   { key: '/analytics', label: <Link to="/analytics">数据看板</Link> },
 ];
@@ -34,6 +36,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/new" replace />} />
           <Route path="/materials" element={<MaterialLibraryPage />} />
+          <Route path="/references" element={<ReferenceVideosPage />} />
           <Route path="/new" element={<NewVideoPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/tasks/:id" element={<TaskDetailPage />} />

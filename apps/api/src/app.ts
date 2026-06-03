@@ -11,6 +11,7 @@ import { analyticsRouter } from './modules/analytics/analytics.router';
 import { internalRouter } from './modules/internal/internal.router';
 import { materialRouter } from './modules/material/material.router';
 import { productRouter } from './modules/product/product.router';
+import { referenceRouter } from './modules/reference/reference.router';
 import { scriptRouter } from './modules/script/script.router';
 import { taskRouter } from './modules/task/task.router';
 import { traceRouter } from './modules/trace/trace.router';
@@ -43,6 +44,7 @@ export function createApp() {
   app.use('/api/internal', internalRouter);
   app.use('/api/materials', materialRouter);
   app.use('/api/products', productRouter);
+  app.use('/api/references', referenceRouter);
   app.use('/api/scripts', scriptRouter);
   app.use('/api/tasks', taskRouter);
   app.use('/api', traceRouter);

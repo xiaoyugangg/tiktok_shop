@@ -6,6 +6,7 @@ import { publicUrlForRelative } from '../../lib/storage';
 import { taskEvents } from './events';
 
 import type {
+  EditingPlanDto,
   Ratio,
   Script,
   ShotDto,
@@ -63,6 +64,7 @@ export async function createTask(args: {
       id: taskId,
       productId: script.productId,
       scriptId: script.id,
+      editingPlanId: editingPlan?.id ?? null,
       ratio: args.ratio,
       status: 'queued',
     },
@@ -93,7 +95,7 @@ export async function createTask(args: {
 export async function getTaskDto(taskId: string): Promise<TaskDto | null> {
   const record = await prisma.videoTask.findUnique({
     where: { id: taskId },
-    include: { shots: { orderBy: { idx: 'asc' } } },
+    include: { editingPlan: true, shots: { orderBy: { idx: 'asc' } } },
   });
   if (!record) return null;
   return toTaskDto(record);
@@ -110,7 +112,7 @@ export async function setTaskStatus(args: {
     where: { id: args.taskId },
     data: {
       status: args.status,
-      errorMsg: args.errorMsg ?? undefined,
+      errorMsg: args.errorMsg ?? (args.status === 'succeeded' ? null : undefined),
       outputPath: args.outputPath ?? undefined,
     },
   });
@@ -232,12 +234,21 @@ function toTaskDto(record: {
   id: string;
   productId: string;
   scriptId: string;
+  editingPlanId: string | null;
   ratio: string;
   status: string;
   errorMsg: string | null;
   outputPath: string | null;
   createdAt: Date;
   updatedAt: Date;
+  editingPlan: {
+    id: string;
+    scriptId: string;
+    strategy: string;
+    payloadJson: string;
+    traceJson: string | null;
+    createdAt: Date;
+  } | null;
   shots: Array<{
     id: string;
     idx: number;
@@ -275,6 +286,8 @@ function toTaskDto(record: {
     id: record.id,
     productId: record.productId,
     scriptId: record.scriptId,
+    editingPlanId: record.editingPlanId,
+    editingPlan: record.editingPlan ? toEditingPlanDto(record.editingPlan) : null,
     ratio: record.ratio as Ratio,
     status: (record.status as TaskStatus) ?? 'queued',
     errorMsg: record.errorMsg,
@@ -284,5 +297,25 @@ function toTaskDto(record: {
     shots,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
+  };
+}
+
+function toEditingPlanDto(record: {
+  id: string;
+  scriptId: string;
+  strategy: string;
+  payloadJson: string;
+  traceJson: string | null;
+  createdAt: Date;
+}): EditingPlanDto {
+  const payload = JSON.parse(record.payloadJson) as { shots: EditingPlanDto['shots'] };
+  const trace = record.traceJson ? (JSON.parse(record.traceJson) as EditingPlanDto['trace']) : [];
+  return {
+    id: record.id,
+    scriptId: record.scriptId,
+    strategy: record.strategy,
+    shots: payload.shots,
+    trace,
+    createdAt: record.createdAt.toISOString(),
   };
 }

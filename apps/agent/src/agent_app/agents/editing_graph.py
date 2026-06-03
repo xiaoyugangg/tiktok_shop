@@ -1,3 +1,4 @@
+import logging
 from typing import TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -17,6 +18,8 @@ from agent_app.schemas import (
     TraceItem,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class EditingGraphState(TypedDict):
     req: EditingPlanRequest
@@ -24,6 +27,7 @@ class EditingGraphState(TypedDict):
     llm_payload: dict
     planned_shots: list[PlannedShot]
     strategy: str
+    material_deduped: bool
     trace: list[TraceItem]
 
 
@@ -61,6 +65,23 @@ def _shot_query(req: EditingPlanRequest, shot: ShotInput) -> str:
     ).strip()
 
 
+def _global_query(req: EditingPlanRequest) -> str:
+    shot_text = " ".join(
+        " ".join([shot.description, shot.subtitle, shot.camera_motion]) for shot in req.script.shots
+    )
+    return " ".join(
+        [
+            req.product.title,
+            " ".join(req.product.selling_points[:5]),
+            req.product.scene or "",
+            req.product.target_audience or "",
+            req.script.narrative,
+            req.script.visual_style,
+            shot_text,
+        ]
+    ).strip()
+
+
 def _fallback_plan(req: EditingPlanRequest, rag_context: list[ShotRagContext]) -> list[PlannedShot]:
     candidates_by_idx = {item.idx: item.candidates for item in rag_context}
     planned: list[PlannedShot] = []
@@ -76,17 +97,16 @@ def _fallback_plan(req: EditingPlanRequest, rag_context: list[ShotRagContext]) -
             PlannedShot(
                 idx=shot.idx,
                 prompt=(
-                    f"Create a {req.script.ratio} ecommerce short video shot for "
-                    f"{req.product.title}. Scene: {shot.description}. Visual style: "
-                    f"{req.script.visual_style}. Selling point: {subtitle}. Use selected "
-                    "first-frame material when available. Avoid real human faces and "
-                    "exaggerated product claims."
+                    f"生成一个 {req.script.ratio} 电商带货短视频分镜，商品是「{req.product.title}」。"
+                    f"画面内容：{shot.description}。视觉风格：{req.script.visual_style}。"
+                    f"核心卖点：{subtitle}。如果存在选中的素材图，请作为首帧或商品视觉参考使用。"
+                    "避免真实清晰人脸和夸张宣传，画面重点突出商品与使用场景。"
                 ),
                 subtitle=subtitle[:120],
-                bgm_hint=shot.bgm_hint or "upbeat commercial",
-                duration_sec=max(2, min(12, int(shot.duration_sec))),
+                bgm_hint=shot.bgm_hint or "轻快商业音乐",
+                duration_sec=max(4, min(12, int(shot.duration_sec))),
                 source_material_id=selected,
-                reason="Fallback plan selected the top RAG candidate and rewrote the prompt.",
+                reason="兜底方案选择当前分镜的最高分 RAG 候选素材，并根据原始脚本重写生成提示词。",
             )
         )
     return planned
@@ -105,12 +125,20 @@ def start_node(state: EditingGraphState) -> EditingGraphState:
 def retrieve_materials_node(state: EditingGraphState) -> EditingGraphState:
     req = state["req"]
     contexts: list[ShotRagContext] = []
+    global_query = _global_query(req)
+    try:
+        query_vector, model = embed_text(global_query)
+    except Exception as err:
+        query_vector, model = [], "token-fallback"
+        state["trace"].append(
+            TraceItem(
+                stage="editing.rag.embedding_fallback",
+                message="Fell back to token retrieval after query embedding failed",
+                payload={"error": str(err)[:240]},
+            )
+        )
     for shot in req.script.shots:
         query = _shot_query(req, shot)
-        try:
-            query_vector, model = embed_text(query)
-        except Exception:
-            query_vector, model = [], "token-fallback"
         ranked = sorted(
             (
                 RagCandidate(
@@ -150,13 +178,13 @@ def build_context_node(state: EditingGraphState) -> EditingGraphState:
         "script": req.script.model_dump(),
         "rag_context": [context.model_dump() for context in state["rag_context"]],
         "constraints": [
-            "This is a generation plan, not timeline editing of existing video files.",
-            "Each shot may select at most one source_material_id.",
-            "Use only candidate material IDs. Use null if no candidate is relevant.",
-            "duration_sec must be between 2 and 12.",
-            "Keep total duration close to 15 seconds when possible.",
-            "Avoid real human faces and exaggerated product claims.",
-            "Return strict JSON with strategy and shots only.",
+            "这是视频生成计划，不是对已有视频文件做时间线剪辑。",
+            "每个分镜最多选择一个 source_material_id。",
+            "只能使用候选素材 ID；如果没有合适素材，source_material_id 返回 null。",
+            "duration_sec 必须在 4 到 12 秒之间。",
+            "避免真实清晰人脸和夸张宣传。",
+            "严格返回 JSON，只包含 strategy 和 shots。",
+            "strategy、prompt、subtitle、bgm_hint、reason 必须使用中文。",
         ],
     }
     state["trace"].append(
@@ -170,55 +198,103 @@ def build_context_node(state: EditingGraphState) -> EditingGraphState:
 
 def llm_editing_plan_node(state: EditingGraphState) -> EditingGraphState:
     system_prompt = (
-        "You are an ecommerce short-video generation planner. Create a shot-level "
-        "generation plan for Seedance. You are not editing existing video files. "
-        "For each input shot, return idx, prompt, subtitle, bgm_hint, duration_sec, "
-        "source_material_id, and reason. Use only provided candidate material IDs or null."
+        "你是电商带货短视频的智能分镜规划 Agent。请为 Seedance 视频生成模型创建分镜级生成方案，"
+        "注意你不是在剪辑已有视频文件，而是在规划每个分镜如何生成。"
+        "每个输入分镜都必须返回 idx、prompt、subtitle、bgm_hint、duration_sec、"
+        "source_material_id 和 reason。source_material_id 只能使用候选素材 ID，"
+        "没有合适素材时返回 null。必须严格输出 JSON。"
+        "strategy、prompt、subtitle、bgm_hint、reason 必须使用中文，表达要适合前端直接展示。"
     )
-    result = chat_json(system_prompt, state["llm_payload"], "editing.llm.plan")
-    state["strategy"] = str(result.get("strategy") or "LangGraph LLM editing plan")
-    state["planned_shots"] = [PlannedShot.model_validate(item) for item in result.get("shots", [])]
-    state["trace"].append(
-        TraceItem(
-            stage="editing.llm.plan",
-            message="LLM generated a shot-level generation plan",
-            payload={"shot_count": len(state["planned_shots"])},
+    try:
+        result = chat_json(system_prompt, state["llm_payload"], "editing.llm.plan")
+        state["strategy"] = str(result.get("strategy") or "LangGraph LLM editing plan")
+        state["planned_shots"] = [PlannedShot.model_validate(item) for item in result.get("shots", [])]
+        state["trace"].append(
+            TraceItem(
+                stage="editing.llm.plan",
+                message="LLM generated a shot-level generation plan",
+                payload={"shot_count": len(state["planned_shots"])},
+            )
         )
-    )
+    except Exception as err:
+        logger.warning("editing LLM planning failed, using fallback", exc_info=err)
+        state["planned_shots"] = _fallback_plan(state["req"], state["rag_context"])
+        state["strategy"] = "LLM 规划超时或模型服务异常，LangGraph 已使用基于脚本和 RAG 素材的兜底分镜方案。"
+        state["trace"].append(
+            TraceItem(
+                stage="editing.llm.timeout_fallback",
+                message="Used deterministic fallback because LLM planning failed",
+                payload={"error": str(err)[:240]},
+            )
+        )
     return state
 
 
-def _validate_plan(req: EditingPlanRequest, shots: list[PlannedShot]) -> list[PlannedShot]:
+def _validate_plan(
+    req: EditingPlanRequest,
+    shots: list[PlannedShot],
+    rag_context: list[ShotRagContext],
+) -> tuple[list[PlannedShot], bool]:
     expected = {shot.idx: shot for shot in req.script.shots}
-    candidate_ids = {
-        material.material_id
-        for material in req.materials
-    }
+    candidate_ids = {material.material_id for material in req.materials}
+    candidates_by_idx = {context.idx: context.candidates for context in rag_context}
     by_idx = {shot.idx: shot for shot in shots}
     if set(by_idx) != set(expected):
         raise ValueError("planned shot indexes do not match script shot indexes")
 
     validated: list[PlannedShot] = []
+    used_source_ids: set[str] = set()
+    material_deduped = False
     for idx, original in expected.items():
         shot = by_idx[idx]
-        source_id = shot.source_material_id if shot.source_material_id in candidate_ids else None
+        source_id = None
+        if shot.source_material_id is not None:
+            source_id = shot.source_material_id if shot.source_material_id in candidate_ids else None
+            if source_id is None or source_id in used_source_ids:
+                if source_id in used_source_ids:
+                    material_deduped = True
+                source_id = next(
+                    (
+                        candidate.material_id
+                        for candidate in candidates_by_idx.get(idx, [])
+                        if candidate.material_id not in used_source_ids
+                    ),
+                    None,
+                )
+            if source_id is None:
+                material_deduped = True
+        if source_id:
+            used_source_ids.add(source_id)
         validated.append(
             PlannedShot(
                 idx=idx,
                 prompt=shot.prompt.strip() or original.description,
                 subtitle=(shot.subtitle or original.subtitle or req.product.title)[:120],
                 bgm_hint=shot.bgm_hint or original.bgm_hint or "upbeat commercial",
-                duration_sec=max(2, min(12, int(shot.duration_sec))),
+                duration_sec=max(4, min(12, int(shot.duration_sec))),
                 source_material_id=source_id,
                 reason=shot.reason or "Validated LLM generation plan.",
             )
         )
-    return validated
+    return validated, material_deduped
+
+
+def dedupe_materials_node(state: EditingGraphState) -> EditingGraphState:
+    if state["material_deduped"]:
+        state["trace"].append(
+            TraceItem(
+                stage="editing.material.dedupe",
+                message="Adjusted repeated material selections across planned shots",
+            )
+        )
+    return state
 
 
 def validate_plan_node(state: EditingGraphState) -> EditingGraphState:
     try:
-        state["planned_shots"] = _validate_plan(state["req"], state["planned_shots"])
+        state["planned_shots"], state["material_deduped"] = _validate_plan(
+            state["req"], state["planned_shots"], state["rag_context"]
+        )
         state["trace"].append(
             TraceItem(
                 stage="editing.validate",
@@ -234,6 +310,7 @@ def validate_plan_node(state: EditingGraphState) -> EditingGraphState:
             )
         )
         state["planned_shots"] = _fallback_plan(state["req"], state["rag_context"])
+        state["material_deduped"] = False
         state["strategy"] = "LangGraph fallback plan after invalid LLM output"
         state["trace"].append(
             TraceItem(
@@ -262,13 +339,15 @@ def build_editing_graph():
     graph.add_node("build_context", build_context_node)
     graph.add_node("llm_editing_plan", llm_editing_plan_node)
     graph.add_node("validate_plan", validate_plan_node)
+    graph.add_node("dedupe_materials", dedupe_materials_node)
     graph.add_node("explain", explain_node)
     graph.set_entry_point("start")
     graph.add_edge("start", "retrieve_materials")
     graph.add_edge("retrieve_materials", "build_context")
     graph.add_edge("build_context", "llm_editing_plan")
     graph.add_edge("llm_editing_plan", "validate_plan")
-    graph.add_edge("validate_plan", "explain")
+    graph.add_edge("validate_plan", "dedupe_materials")
+    graph.add_edge("dedupe_materials", "explain")
     graph.add_edge("explain", END)
     return graph.compile()
 
@@ -282,6 +361,7 @@ def run_editing_graph(req: EditingPlanRequest) -> EditingPlanResponse:
             "llm_payload": {},
             "planned_shots": [],
             "strategy": "",
+            "material_deduped": False,
             "trace": [],
         }
     )

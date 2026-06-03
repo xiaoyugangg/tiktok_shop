@@ -1,6 +1,7 @@
 import { GenerateScriptReqSchema } from '@tiktop/shared';
 import { Router } from 'express';
 
+import { env } from '../../env';
 import { callAgent, type EditingPlanResponse } from '../../lib/agentClient';
 import { prisma } from '../../lib/prisma';
 
@@ -13,6 +14,18 @@ import {
 } from './script.service';
 
 export const scriptRouter: Router = Router();
+
+type MaterialForPlan = {
+  id: string;
+  kind: string;
+  caption: string | null;
+  summary: string | null;
+  filename: string;
+  tagsJson: string | null;
+  embeddingText: string | null;
+  embeddingVectorJson: string | null;
+  embeddingModel: string | null;
+};
 
 scriptRouter.post('/', async (req, res, next) => {
   try {
@@ -93,39 +106,47 @@ scriptRouter.post('/:id/editing-plan', async (req, res, next) => {
     } catch {
       sellingPoints = [];
     }
+    const candidateMaterials = await collectCandidateMaterials({
+      mainMaterialId: script.product.mainMaterialId,
+      materials: script.product.materials,
+    });
 
-    const result = await callAgent<EditingPlanResponse>('/editing/plan', {
-      product: {
-        id: script.product.id,
-        title: script.product.title,
-        selling_points: sellingPoints,
-        target_audience: script.product.targetAudience,
-        scene: script.product.scene,
-      },
-      script: {
-        narrative: payload.narrative,
-        visual_style: payload.visualStyle,
-        ratio: payload.ratio,
-        shots: payload.shots.map((shot) => ({
-          idx: shot.idx,
-          description: shot.description,
-          camera_motion: shot.cameraMotion ?? '',
-          subtitle: shot.subtitle ?? '',
-          bgm_hint: shot.bgmHint ?? '',
-          duration_sec: shot.durationSec,
+    const result = await callAgent<EditingPlanResponse>(
+      '/editing/plan',
+      {
+        product: {
+          id: script.product.id,
+          title: script.product.title,
+          selling_points: sellingPoints,
+          target_audience: script.product.targetAudience,
+          scene: script.product.scene,
+        },
+        script: {
+          narrative: payload.narrative,
+          visual_style: payload.visualStyle,
+          ratio: payload.ratio,
+          shots: payload.shots.map((shot) => ({
+            idx: shot.idx,
+            description: shot.description,
+            camera_motion: shot.cameraMotion ?? '',
+            subtitle: shot.subtitle ?? '',
+            bgm_hint: shot.bgmHint ?? '',
+            duration_sec: shot.durationSec,
+          })),
+        },
+        materials: candidateMaterials.map((material) => ({
+          material_id: material.id,
+          kind: material.kind,
+          caption: material.caption,
+          summary: material.summary ?? material.filename,
+          tags: parseJsonStringArray(material.tagsJson),
+          embedding_text: material.embeddingText ?? '',
+          embedding_vector: parseJsonNumberArray(material.embeddingVectorJson),
+          embedding_model: material.embeddingModel,
         })),
       },
-      materials: script.product.materials.map((material) => ({
-        material_id: material.id,
-        kind: material.kind,
-        caption: material.caption,
-        summary: material.summary ?? material.filename,
-        tags: parseJsonStringArray(material.tagsJson),
-        embedding_text: material.embeddingText ?? '',
-        embedding_vector: parseJsonNumberArray(material.embeddingVectorJson),
-        embedding_model: material.embeddingModel,
-      })),
-    });
+      { signal: AbortSignal.timeout(Math.max(env.AGENT_TIMEOUT_MS, 180_000)) },
+    );
 
     const dto = await saveEditingPlan({
       scriptId: script.id,
@@ -147,6 +168,33 @@ scriptRouter.post('/:id/editing-plan', async (req, res, next) => {
     next(err);
   }
 });
+
+async function collectCandidateMaterials(product: {
+  mainMaterialId: string | null;
+  materials: MaterialForPlan[];
+}): Promise<MaterialForPlan[]> {
+  const byId = new Map<string, MaterialForPlan>();
+  const add = (material: MaterialForPlan | null) => {
+    if (material?.kind === 'image') byId.set(material.id, material);
+  };
+
+  for (const material of product.materials) add(material);
+
+  if (product.mainMaterialId && !byId.has(product.mainMaterialId)) {
+    add(await prisma.material.findUnique({ where: { id: product.mainMaterialId } }));
+  }
+
+  if (byId.size === 0 || product.materials.length === 0) {
+    const globalAnalyzedImages = await prisma.material.findMany({
+      where: { kind: 'image', analyzedAt: { not: null } },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+    });
+    for (const material of globalAnalyzedImages) add(material);
+  }
+
+  return [...byId.values()];
+}
 
 function parseJsonStringArray(value: string | null): string[] {
   if (!value) return [];

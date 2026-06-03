@@ -38,12 +38,14 @@ export type ProductDto = z.infer<typeof ProductDtoSchema>;
 export const GenerateScriptReqSchema = z.object({
   productId: z.string(),
   ratio: RatioSchema.optional(),
+  referenceAnalysisId: z.string().optional(),
 });
 export type GenerateScriptReq = z.infer<typeof GenerateScriptReqSchema>;
 
 export const ScriptDtoSchema = z.object({
   id: z.string(),
   productId: z.string(),
+  referenceAnalysisId: z.string().nullable().optional(),
   payload: ScriptSchema,
   createdAt: z.string(),
 });
@@ -106,6 +108,8 @@ export const TaskDtoSchema = z.object({
   id: z.string(),
   productId: z.string(),
   scriptId: z.string(),
+  editingPlanId: z.string().nullable().optional(),
+  editingPlan: EditingPlanDtoSchema.nullable().optional(),
   ratio: RatioSchema,
   status: TaskStatusSchema,
   errorMsg: z.string().nullable().optional(),
@@ -122,7 +126,7 @@ export const UpdateShotReqSchema = z.object({
   prompt: z.string().max(800).optional(),
   subtitle: z.string().max(120).optional(),
   bgmHint: z.string().max(80).optional(),
-  durationSec: z.number().int().min(2).max(12).optional(),
+  durationSec: z.number().int().min(4).max(12).optional(),
   sourceMaterialId: z.string().nullable().optional(),
 });
 export type UpdateShotReq = z.infer<typeof UpdateShotReqSchema>;
@@ -138,3 +142,46 @@ export const TraceDtoSchema = z.object({
   createdAt: z.string(),
 });
 export type TraceDto = z.infer<typeof TraceDtoSchema>;
+
+export const ReferenceVideoAnalysisDtoSchema = z.object({
+  id: z.string(),
+  referenceVideoId: z.string(),
+  summary: z.string(),
+  hookType: z.string(),
+  painPoint: z.string(),
+  sellingPoints: z.array(z.string()),
+  shotStructure: z.array(z.string()),
+  visualStyle: z.string(),
+  subtitleStyle: z.string(),
+  bgmRhythm: z.string(),
+  ctaPattern: z.string(),
+  reusableTemplate: z.string(),
+  keyframeCaptions: z.array(z.string()),
+  trace: z.array(AgentTraceItemSchema),
+  createdAt: z.string(),
+});
+export type ReferenceVideoAnalysisDto = z.infer<typeof ReferenceVideoAnalysisDtoSchema>;
+
+export const ReferenceVideoDtoSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  sourceType: z.enum(['upload', 'url', 'manual']),
+  sourceUrl: z.string().nullable().optional(),
+  filename: z.string().nullable().optional(),
+  url: z.string().nullable().optional(),
+  mime: z.string().nullable().optional(),
+  size: z.number().int().nullable().optional(),
+  category: z.string().nullable().optional(),
+  keywords: z.array(z.string()),
+  latestAnalysis: ReferenceVideoAnalysisDtoSchema.nullable().optional(),
+  createdAt: z.string(),
+});
+export type ReferenceVideoDto = z.infer<typeof ReferenceVideoDtoSchema>;
+
+export const CreateReferenceVideoReqSchema = z.object({
+  title: z.string().min(1).max(120),
+  sourceUrl: z.string().url().optional(),
+  category: z.string().max(40).optional(),
+  keywords: z.array(z.string().max(30)).max(12).optional(),
+});
+export type CreateReferenceVideoReq = z.infer<typeof CreateReferenceVideoReqSchema>;

@@ -31,3 +31,20 @@ def test_retry_decision_stops_after_two_retries():
     )
 
     assert decision.should_retry is False
+
+
+def test_retry_decision_retries_connection_reset_errors():
+    decision = decide_retry(
+        RetryDecisionRequest(
+            task_id="t1",
+            shot_id="s1",
+            error_message="[WinError 10054] 远程主机强迫关闭了一个现有的连接。",
+            retry_count=0,
+            prompt="complex scene with product",
+            duration_sec=8,
+        )
+    )
+
+    assert decision.should_retry is True
+    assert decision.patch.duration_sec == 8
+    assert "connection" in decision.reason.lower()

@@ -13,6 +13,7 @@ import {
   Card,
   Col,
   Collapse,
+  Descriptions,
   Empty,
   Form,
   Input,
@@ -49,6 +50,13 @@ const SHOT_ICON: Record<ShotStatus, React.ReactNode> = {
   img_ok: <LoadingOutlined style={{ color: '#1677ff' }} />,
   video_ok: <CheckCircleFilled style={{ color: '#52c41a' }} />,
   failed: <CloseCircleFilled style={{ color: '#ff4d4f' }} />,
+};
+
+const SHOT_STATUS_LABEL: Record<ShotStatus, string> = {
+  pending: '等待生成',
+  img_ok: '图片就绪',
+  video_ok: '视频就绪',
+  failed: '失败',
 };
 
 export function TaskDetailPage() {
@@ -132,6 +140,7 @@ export function TaskDetailPage() {
   const task = taskQuery.data;
   if (!task) return <Empty description="任务不存在" />;
 
+  const editingPlan = task.editingPlan;
   const statusInfo = TASK_STATUS_LABEL[task.status];
   const progress = task.shots.length
     ? Math.round(
@@ -173,6 +182,121 @@ export function TaskDetailPage() {
           {task.shots.length}
         </Text>
       </Card>
+
+      {editingPlan ? (
+        <Card
+          title={
+            <Space size={8} wrap>
+              <span>本任务使用的智能分镜方案</span>
+              <Tag color="blue">{editingPlan.id}</Tag>
+              <Tag>{editingPlan.shots.length} 个计划分镜</Tag>
+            </Space>
+          }
+        >
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Descriptions size="small" column={1}>
+              <Descriptions.Item label="绑定任务">
+                <Space size={6} wrap>
+                  <Tag>task:{task.id.slice(0, 12)}</Tag>
+                  <Tag>editingPlan:{task.editingPlanId}</Tag>
+                </Space>
+              </Descriptions.Item>
+              <Descriptions.Item label="生成时间">
+                {new Date(editingPlan.createdAt).toLocaleString()}
+              </Descriptions.Item>
+              <Descriptions.Item label="Agent/RAG 策略">{editingPlan.strategy}</Descriptions.Item>
+              <Descriptions.Item label="追溯说明">
+                该区域展示的是创建视频任务时绑定并落库的 EditingPlan。下面每个分镜的素材 ID、
+                生成 Prompt 和 Agent 原因，都是视频生成前的 RAG 检索与 LLM 规划结果。
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Row gutter={[12, 12]}>
+              {editingPlan.shots.map((planned) => {
+                const shot = task.shots.find((item) => item.idx === planned.idx);
+                return (
+                  <Col xs={24} lg={8} key={planned.idx}>
+                    <Card
+                      size="small"
+                      title={
+                        <Space size={6} wrap>
+                          <Tag color="magenta">分镜 {planned.idx + 1}</Tag>
+                          <Tag>{planned.durationSec}s</Tag>
+                          {shot && <Tag color="cyan">当前: {SHOT_STATUS_LABEL[shot.status]}</Tag>}
+                        </Space>
+                      }
+                    >
+                      <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                        <Paragraph ellipsis={{ rows: 3 }} style={{ marginBottom: 0 }}>
+                          Prompt: {planned.prompt}
+                        </Paragraph>
+                        <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                          字幕: {planned.subtitle || '无'}
+                        </Paragraph>
+                        <Space size={4} wrap>
+                          <Tag color="purple">BGM: {planned.bgmHint || '无'}</Tag>
+                          {planned.sourceMaterialId ? (
+                            <Tag color="geekblue">素材: {planned.sourceMaterialId}</Tag>
+                          ) : (
+                            <Tag>未绑定素材</Tag>
+                          )}
+                        </Space>
+                        <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                          Agent/RAG 原因: {planned.reason}
+                        </Paragraph>
+                      </Space>
+                    </Card>
+                  </Col>
+                );
+              })}
+            </Row>
+
+            <Collapse
+              size="small"
+              items={[
+                {
+                  key: 'editing-plan-trace',
+                  label: `EditingPlan / RAG Trace (${editingPlan.trace.length})`,
+                  children: editingPlan.trace.length ? (
+                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                      {editingPlan.trace.map((item, index) => (
+                        <Card key={`${item.stage}-${index}`} size="small">
+                          <Space size={6} wrap>
+                            <Tag color="blue">{item.stage}</Tag>
+                            <Text type="secondary">{item.message}</Text>
+                          </Space>
+                          {item.payload && (
+                            <pre
+                              style={{
+                                background: '#fafafa',
+                                margin: '8px 0 0',
+                                padding: 8,
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                              }}
+                            >
+                              {JSON.stringify(item.payload, null, 2)}
+                            </pre>
+                          )}
+                        </Card>
+                      ))}
+                    </Space>
+                  ) : (
+                    <Empty description="暂无 EditingPlan trace" />
+                  ),
+                },
+              ]}
+            />
+          </Space>
+        </Card>
+      ) : (
+        <Alert
+          type="warning"
+          showIcon
+          message="该任务没有绑定智能分镜方案"
+          description="这通常是旧任务，或者创建任务时没有保存 editingPlanId，因此只能看到 Shot 复制字段，无法完整回看当时的 Agent/RAG 决策。"
+        />
+      )}
 
       {task.status === 'failed' && (
         <Alert type="error" showIcon message="任务失败" description={task.errorMsg ?? '未知错误'} />
@@ -324,7 +448,7 @@ export function TaskDetailPage() {
             <Input maxLength={80} />
           </Form.Item>
           <Form.Item name="durationSec" label="时长">
-            <InputNumber min={2} max={12} style={{ width: '100%' }} />
+            <InputNumber min={4} max={12} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="sourceMaterialId" label="素材 ID">
             <Input allowClear />

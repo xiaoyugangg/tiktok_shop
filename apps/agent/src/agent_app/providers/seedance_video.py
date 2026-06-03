@@ -1,4 +1,5 @@
 import base64
+import json
 import time
 from pathlib import Path
 
@@ -14,7 +15,7 @@ def clamp_duration(requested: int | float) -> int:
         value = round(float(requested))
     except (TypeError, ValueError):
         value = 5
-    return max(2, min(12, value))
+    return max(4, min(12, value))
 
 
 def _image_data_url(path: str) -> str:
@@ -22,6 +23,25 @@ def _image_data_url(path: str) -> str:
     suffix = p.suffix.lower()
     mime = "image/png" if suffix == ".png" else "image/webp" if suffix == ".webp" else "image/jpeg"
     return f"data:{mime};base64,{base64.b64encode(p.read_bytes()).decode('ascii')}"
+
+
+def _raise_seedance_error(err: httpx.HTTPStatusError, payload: dict) -> None:
+    response_text = err.response.text
+    try:
+        response_text = json.dumps(err.response.json(), ensure_ascii=False)
+    except ValueError:
+        pass
+    request_summary = {
+        "model": payload.get("model"),
+        "ratio": payload.get("ratio"),
+        "duration": payload.get("duration"),
+        "resolution": payload.get("resolution"),
+        "has_image": any(item.get("type") == "image_url" for item in payload.get("content", [])),
+    }
+    raise RuntimeError(
+        "seedance create task failed: "
+        f"{err.response.status_code} {response_text}; request={json.dumps(request_summary, ensure_ascii=False)}"
+    ) from err
 
 
 def generate_clip(req: ClipGenerateRequest) -> ClipGenerateResponse:
@@ -55,7 +75,10 @@ def generate_clip(req: ClipGenerateRequest) -> ClipGenerateResponse:
             headers=headers,
             json=create_payload,
         )
-        create.raise_for_status()
+        try:
+            create.raise_for_status()
+        except httpx.HTTPStatusError as err:
+            _raise_seedance_error(err, create_payload)
         task_id = create.json().get("id")
         if not task_id:
             raise RuntimeError("seedance create task missing id")

@@ -32,13 +32,20 @@ def embed_text(text: str) -> tuple[list[float], str]:
     if settings.model_mode == "mock":
         return fallback_embedding(text), "mock-hash-64"
 
-    if not settings.ark_api_key or not settings.ark_embedding_model:
-        raise RuntimeError("ARK_EMBEDDING_MODEL is required for live material embedding")
+    api_key = settings.qwen_embedding_api_key or settings.ark_api_key
+    base_url = settings.qwen_embedding_base_url if settings.qwen_embedding_api_key else settings.ark_base_url
+    model = settings.qwen_embedding_model if settings.qwen_embedding_api_key else settings.ark_embedding_model
 
-    headers = {"Authorization": f"Bearer {settings.ark_api_key}", "Content-Type": "application/json"}
-    payload = {"model": settings.ark_embedding_model, "input": text}
+    if not api_key or not model:
+        raise RuntimeError(
+            "QWEN_EMBEDDING_API_KEY/QWEN_EMBEDDING_MODEL or ARK_EMBEDDING_MODEL "
+            "is required for live material embedding"
+        )
+
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    payload = {"model": model, "input": text}
     resp = httpx.post(
-        f"{settings.ark_base_url}/embeddings",
+        f"{base_url.rstrip('/')}/embeddings",
         headers=headers,
         json=payload,
         timeout=60,
@@ -46,4 +53,4 @@ def embed_text(text: str) -> tuple[list[float], str]:
     resp.raise_for_status()
     data = resp.json()
     values = data["data"][0]["embedding"]
-    return normalize_vector([float(x) for x in values]), settings.ark_embedding_model
+    return normalize_vector([float(x) for x in values]), model

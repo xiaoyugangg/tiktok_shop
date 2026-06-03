@@ -19,10 +19,11 @@ def _image_data_url(path: str, mime: str) -> str:
 
 
 def caption_material(path: str, mime: str, product_title: str | None = None) -> str:
+    model = settings.ark_vision_model or settings.ark_text_model
     if (
         settings.model_mode == "mock"
         or not settings.ark_api_key
-        or not settings.ark_vision_model
+        or not model
         or not Path(path).exists()
     ):
         return _fallback_caption(path, product_title)
@@ -34,7 +35,7 @@ def caption_material(path: str, mime: str, product_title: str | None = None) -> 
         "Do not invent brand, price, sales volume, or certifications. Keep it under 80 Chinese characters."
     )
     payload = {
-        "model": settings.ark_vision_model,
+        "model": model,
         "messages": [
             {
                 "role": "user",

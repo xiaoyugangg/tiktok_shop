@@ -11,7 +11,7 @@
     "dev": "pnpm -r --parallel --filter=!@tiktop/shared run dev",
     "dev:web": "pnpm --filter @tiktop/web dev",
     "dev:api": "pnpm --filter @tiktop/api dev",
-    "dev:agent": "cd apps/agent && conda run --no-capture-output -n tiktop_agent_p1 python -m uvicorn agent_app.main:app --app-dir src --host 127.0.0.1 --port 8790",
+    "dev:agent": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev-agent.ps1",
     "build": "pnpm -r run build",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",

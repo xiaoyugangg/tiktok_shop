@@ -90,6 +90,20 @@ class ProductInput(BaseModel):
     scene: str | None = None
 
 
+class ReferenceAnalysisInput(BaseModel):
+    id: str
+    summary: str = ""
+    hook_type: str = ""
+    pain_point: str = ""
+    selling_points: list[str] = Field(default_factory=list)
+    shot_structure: list[str] = Field(default_factory=list)
+    visual_style: str = ""
+    subtitle_style: str = ""
+    bgm_rhythm: str = ""
+    cta_pattern: str = ""
+    reusable_template: str = ""
+
+
 class MaterialSummary(BaseModel):
     material_id: str
     kind: str
@@ -188,6 +202,7 @@ class PostprocessResponse(BaseModel):
 class ScriptGenerateRequest(BaseModel):
     product: ProductInput
     ratio: str = "9:16"
+    reference_analysis: ReferenceAnalysisInput | None = None
 
 
 class ScriptShotOutput(BaseModel):
@@ -205,6 +220,31 @@ class ScriptGenerateResponse(BaseModel):
     ratio: str
     shots: list[ScriptShotOutput]
     constraints: list[str] = Field(default_factory=list)
+    trace: list[TraceItem]
+
+
+class ReferenceVideoAnalyzeRequest(BaseModel):
+    reference_video_id: str
+    title: str
+    path: str | None = None
+    source_url: str | None = None
+    category: str | None = None
+    keywords: list[str] = Field(default_factory=list)
+
+
+class ReferenceVideoAnalysisResponse(BaseModel):
+    reference_video_id: str
+    summary: str
+    hook_type: str
+    pain_point: str
+    selling_points: list[str]
+    shot_structure: list[str]
+    visual_style: str
+    subtitle_style: str
+    bgm_rhythm: str
+    cta_pattern: str
+    reusable_template: str
+    keyframe_captions: list[str]
     trace: list[TraceItem]
 
 
@@ -252,6 +292,7 @@ class RegenerateShotRequest(BaseModel):
     task_id: str
     ratio: str
     storage_root: str
+    product_main_material_path: str | None = None
     shot: PipelineShotInput
     shots: list[PipelineShotInput]
     enable_subtitle: bool = True

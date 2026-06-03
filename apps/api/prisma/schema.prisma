@@ -42,15 +42,58 @@ model Product {
 }
 
 model Script {
-  id           String        @id @default(cuid())
-  productId    String
-  product      Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
-  payload      String
-  createdAt    DateTime      @default(now())
-  tasks        VideoTask[]
-  editingPlans EditingPlan[]
+  id                  String                  @id @default(cuid())
+  productId           String
+  product             Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
+  referenceAnalysisId String?
+  referenceAnalysis   ReferenceVideoAnalysis? @relation(fields: [referenceAnalysisId], references: [id], onDelete: SetNull)
+  payload             String
+  createdAt           DateTime                @default(now())
+  tasks               VideoTask[]
+  editingPlans        EditingPlan[]
 
   @@index([productId])
+  @@index([referenceAnalysisId])
+}
+
+model ReferenceVideo {
+  id           String                   @id @default(cuid())
+  title        String
+  sourceType   String
+  sourceUrl    String?
+  filename     String?
+  path         String?
+  mime         String?
+  size         Int?
+  category     String?
+  keywordsJson String?
+  analyses     ReferenceVideoAnalysis[]
+  createdAt    DateTime                 @default(now())
+
+  @@index([sourceType])
+  @@index([category])
+}
+
+model ReferenceVideoAnalysis {
+  id                   String         @id @default(cuid())
+  referenceVideoId     String
+  referenceVideo       ReferenceVideo @relation(fields: [referenceVideoId], references: [id], onDelete: Cascade)
+  scripts              Script[]
+  summary              String
+  hookType             String
+  painPoint            String
+  sellingPointsJson    String
+  shotStructureJson    String
+  visualStyle          String
+  subtitleStyle        String
+  bgmRhythm            String
+  ctaPattern           String
+  reusableTemplate     String
+  keyframeCaptionsJson String
+  traceJson            String?
+  createdAt            DateTime       @default(now())
+
+  @@index([referenceVideoId])
 }
 
 model EditingPlan {
@@ -60,26 +103,30 @@ model EditingPlan {
   strategy    String
   payloadJson String
   traceJson   String?
+  videoTasks  VideoTask[]
   createdAt   DateTime @default(now())
 
   @@index([scriptId])
 }
 
 model VideoTask {
-  id         String   @id @default(cuid())
-  productId  String
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  scriptId   String
-  script     Script   @relation(fields: [scriptId], references: [id], onDelete: Cascade)
-  ratio      String
-  status     String
-  errorMsg   String?
-  outputPath String?
-  shots      Shot[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            String       @id @default(cuid())
+  productId     String
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  scriptId      String
+  script        Script       @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  editingPlanId String?
+  editingPlan   EditingPlan? @relation(fields: [editingPlanId], references: [id], onDelete: SetNull)
+  ratio         String
+  status        String
+  errorMsg      String?
+  outputPath    String?
+  shots         Shot[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   @@index([status])
+  @@index([editingPlanId])
 }
 
 model Shot {

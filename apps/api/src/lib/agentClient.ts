@@ -69,6 +69,22 @@ export interface ScriptGenerateResponse {
   trace: AgentTraceItem[];
 }
 
+export interface ReferenceVideoAnalysisResponse {
+  reference_video_id: string;
+  summary: string;
+  hook_type: string;
+  pain_point: string;
+  selling_points: string[];
+  shot_structure: string[];
+  visual_style: string;
+  subtitle_style: string;
+  bgm_rhythm: string;
+  cta_pattern: string;
+  reusable_template: string;
+  keyframe_captions: string[];
+  trace: AgentTraceItem[];
+}
+
 export interface PipelineRunResponse {
   task_id: string;
   status: 'succeeded' | 'failed';
@@ -87,16 +103,22 @@ export async function callAgent<TResponse>(
   }
 
   const baseUrl = env.AGENT_BASE_URL.replace(/\/$/, '');
-  const response = await fetch(`${baseUrl}${path}`, {
-    method: body === undefined ? 'GET' : 'POST',
-    headers: {
-      'content-type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    signal: AbortSignal.timeout(env.AGENT_TIMEOUT_MS),
-    ...init,
-  });
+  let response;
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      ...init,
+      method: body === undefined ? 'GET' : 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(init?.headers ?? {}),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: init?.signal ?? AbortSignal.timeout(env.AGENT_TIMEOUT_MS),
+    });
+  } catch (err) {
+    const cause = err instanceof Error && err.cause instanceof Error ? `: ${err.cause.message}` : '';
+    throw new Error(`agent ${path} fetch failed${cause}`);
+  }
 
   if (!response.ok) {
     const text = await response.text().catch(() => '');

@@ -13,9 +13,16 @@ import { prisma } from '../../lib/prisma';
 export async function createScriptForProduct(args: {
   productId: string;
   ratio?: Ratio;
+  referenceAnalysisId?: string;
 }): Promise<ScriptDto> {
   const product = await prisma.product.findUnique({ where: { id: args.productId } });
   if (!product) throw new Error(`product ${args.productId} not found`);
+  const referenceAnalysis = args.referenceAnalysisId
+    ? await prisma.referenceVideoAnalysis.findUnique({ where: { id: args.referenceAnalysisId } })
+    : null;
+  if (args.referenceAnalysisId && !referenceAnalysis) {
+    throw new Error(`reference analysis ${args.referenceAnalysisId} not found`);
+  }
 
   let sellingPoints: string[] = [];
   try {
@@ -34,19 +41,35 @@ export async function createScriptForProduct(args: {
       scene: product.scene,
     },
     ratio,
+    reference_analysis: referenceAnalysis
+      ? {
+          id: referenceAnalysis.id,
+          summary: referenceAnalysis.summary,
+          hook_type: referenceAnalysis.hookType,
+          pain_point: referenceAnalysis.painPoint,
+          selling_points: parseJsonStringArray(referenceAnalysis.sellingPointsJson),
+          shot_structure: parseJsonStringArray(referenceAnalysis.shotStructureJson),
+          visual_style: referenceAnalysis.visualStyle,
+          subtitle_style: referenceAnalysis.subtitleStyle,
+          bgm_rhythm: referenceAnalysis.bgmRhythm,
+          cta_pattern: referenceAnalysis.ctaPattern,
+          reusable_template: referenceAnalysis.reusableTemplate,
+        }
+      : null,
   });
+  const normalizedShots = result.shots.slice(0, 3).map((shot, idx) => ({
+    idx,
+    description: shot.description,
+    cameraMotion: shot.camera_motion,
+    subtitle: shot.subtitle,
+    bgmHint: shot.bgm_hint,
+    durationSec: Math.max(4, Math.min(12, Math.round(shot.duration_sec))),
+  }));
   const script: Script = ScriptSchema.parse({
     narrative: result.narrative,
     visualStyle: result.visual_style,
     ratio: result.ratio,
-    shots: result.shots.map((shot) => ({
-      idx: shot.idx,
-      description: shot.description,
-      cameraMotion: shot.camera_motion,
-      subtitle: shot.subtitle,
-      bgmHint: shot.bgm_hint,
-      durationSec: shot.duration_sec,
-    })),
+    shots: normalizedShots,
     constraints: result.constraints,
   });
 
@@ -55,6 +78,7 @@ export async function createScriptForProduct(args: {
     data: {
       id,
       productId: product.id,
+      referenceAnalysisId: referenceAnalysis?.id ?? null,
       payload: JSON.stringify(script),
     },
   });
@@ -62,9 +86,20 @@ export async function createScriptForProduct(args: {
   return {
     id: record.id,
     productId: record.productId,
+    referenceAnalysisId: record.referenceAnalysisId,
     payload: script,
     createdAt: record.createdAt.toISOString(),
   };
+}
+
+function parseJsonStringArray(value: string | null): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getScript(id: string): Promise<ScriptDto | null> {
@@ -79,6 +114,7 @@ export async function getScript(id: string): Promise<ScriptDto | null> {
   return {
     id: record.id,
     productId: record.productId,
+    referenceAnalysisId: record.referenceAnalysisId,
     payload,
     createdAt: record.createdAt.toISOString(),
   };

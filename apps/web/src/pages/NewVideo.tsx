@@ -1,17 +1,24 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { App, Alert, Button, Card, Form, Input, Radio, Select, Space, Steps, Tag, Typography } from 'antd';
-import { useState } from 'react';
+import { App, Alert, Button, Card, Collapse, Form, Input, Radio, Select, Space, Steps, Tag, Typography } from 'antd';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { listMaterials } from '../api/material';
 import { createProduct, listProducts } from '../api/product';
-import { createEditingPlan, generateScript } from '../api/script';
+import { listReferenceVideos } from '../api/reference';
+import {
+  createEditingPlan,
+  generateScript,
+  getLatestEditingPlanOrNull,
+  listEditingPlans,
+} from '../api/script';
 import { startVideoTask } from '../api/task';
 import { ScriptBoard } from '../components/ScriptBoard';
 
 import type { EditingPlanDto, Ratio, ScriptDto } from '@tiktop/shared';
 
 const { Title, Text } = Typography;
+const NEW_VIDEO_DRAFT_KEY = 'tiktop:new-video-draft:v1';
 
 interface FormValues {
   title: string;
@@ -19,7 +26,15 @@ interface FormValues {
   targetAudience?: string;
   scene?: string;
   mainMaterialId?: string;
+  referenceAnalysisId?: string;
   ratio: Ratio;
+}
+
+interface NewVideoDraft {
+  step: 0 | 1 | 2;
+  formValues: Partial<FormValues>;
+  script: ScriptDto | null;
+  editingPlan: EditingPlanDto | null;
 }
 
 export function NewVideoPage() {
@@ -30,6 +45,30 @@ export function NewVideoPage() {
   const [script, setScript] = useState<ScriptDto | null>(null);
   const [editingPlan, setEditingPlan] = useState<EditingPlanDto | null>(null);
 
+  useEffect(() => {
+    const raw = window.localStorage.getItem(NEW_VIDEO_DRAFT_KEY);
+    if (!raw) return;
+    try {
+      const draft = JSON.parse(raw) as NewVideoDraft;
+      form.setFieldsValue(draft.formValues);
+      setStep(draft.step ?? 0);
+      setScript(draft.script ?? null);
+      setEditingPlan(draft.editingPlan ?? null);
+    } catch {
+      window.localStorage.removeItem(NEW_VIDEO_DRAFT_KEY);
+    }
+  }, [form]);
+
+  useEffect(() => {
+    const draft: NewVideoDraft = {
+      step,
+      formValues: form.getFieldsValue(),
+      script,
+      editingPlan,
+    };
+    window.localStorage.setItem(NEW_VIDEO_DRAFT_KEY, JSON.stringify(draft));
+  }, [editingPlan, form, script, step]);
+
   const { data: materials = [] } = useQuery({
     queryKey: ['materials'],
     queryFn: () => listMaterials(),
@@ -38,6 +77,25 @@ export function NewVideoPage() {
     queryKey: ['products'],
     queryFn: () => listProducts(),
   });
+  const { data: references = [] } = useQuery({
+    queryKey: ['reference-videos'],
+    queryFn: () => listReferenceVideos(),
+  });
+  const { data: editingPlans = [], refetch: refetchEditingPlans } = useQuery({
+    queryKey: ['editing-plans', script?.id],
+    queryFn: () => listEditingPlans(script!.id),
+    enabled: !!script?.id,
+  });
+  const selectedReference = references.find(
+    (item) => item.latestAnalysis?.id === script?.referenceAnalysisId,
+  );
+
+  useEffect(() => {
+    if (!script || editingPlan) return;
+    getLatestEditingPlanOrNull(script.id).then((plan) => {
+      if (plan) setEditingPlan(plan);
+    });
+  }, [editingPlan, script]);
 
   const generateMutation = useMutation({
     mutationFn: async (values: FormValues) => {
@@ -49,7 +107,11 @@ export function NewVideoPage() {
         mainMaterialId: values.mainMaterialId,
         ratio: values.ratio,
       });
-      return generateScript({ productId: product.id, ratio: values.ratio });
+      return generateScript({
+        productId: product.id,
+        ratio: values.ratio,
+        referenceAnalysisId: values.referenceAnalysisId,
+      });
     },
     onSuccess: (dto) => {
       setScript(dto);
@@ -67,6 +129,7 @@ export function NewVideoPage() {
     },
     onSuccess: (plan) => {
       setEditingPlan(plan);
+      refetchEditingPlans();
       message.success('智能分镜方案已生成');
     },
     onError: (err: Error) => message.error(err.message),
@@ -140,6 +203,18 @@ export function NewVideoPage() {
                 .map((m) => ({ value: m.id, label: m.filename }))}
             />
           </Form.Item>
+          <Form.Item name="referenceAnalysisId" label="参考视频打法">
+            <Select
+              allowClear
+              placeholder="可选：选择已拆解的参考视频，让剧本复用其 Hook / 分镜 / CTA"
+              options={references
+                .filter((item) => item.latestAnalysis)
+                .map((item) => ({
+                  value: item.latestAnalysis!.id,
+                  label: `${item.title} - ${item.latestAnalysis!.hookType}`,
+                }))}
+            />
+          </Form.Item>
           <Form.Item name="ratio" label="画幅">
             <Radio.Group>
               <Radio.Button value="9:16">9:16 竖版</Radio.Button>
@@ -178,6 +253,7 @@ export function NewVideoPage() {
                   setEditingPlan(null);
                   setStep(0);
                   form.resetFields();
+                  window.localStorage.removeItem(NEW_VIDEO_DRAFT_KEY);
                 }}
               >
                 重新填写
@@ -209,7 +285,55 @@ export function NewVideoPage() {
                 description={editingPlan.strategy}
               />
             )}
+            {script.referenceAnalysisId && (
+              <Alert
+                type="success"
+                showIcon
+                message="本脚本已使用参考视频打法"
+                description={
+                  selectedReference?.latestAnalysis
+                    ? `${selectedReference.title} / Hook: ${selectedReference.latestAnalysis.hookType} / CTA: ${selectedReference.latestAnalysis.ctaPattern}`
+                    : `referenceAnalysisId: ${script.referenceAnalysisId}`
+                }
+              />
+            )}
             <ScriptBoard script={script.payload} editingPlan={editingPlan} />
+            <Collapse
+              size="small"
+              items={[
+                {
+                  key: 'editing-plan-history',
+                  label: `历史智能分镜方案 (${editingPlans.length})`,
+                  children: editingPlans.length ? (
+                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                      {editingPlans.map((plan) => (
+                        <Card key={plan.id} size="small">
+                          <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                            <Space size={6} wrap>
+                              <Tag color={plan.id === editingPlan?.id ? 'green' : 'blue'}>
+                                {plan.id === editingPlan?.id ? '当前方案' : '历史方案'}
+                              </Tag>
+                              <Tag>{plan.shots.length} 个分镜</Tag>
+                              <Text type="secondary">
+                                {new Date(plan.createdAt).toLocaleString()}
+                              </Text>
+                            </Space>
+                            <Text>{plan.strategy}</Text>
+                            <Space>
+                              <Button size="small" onClick={() => setEditingPlan(plan)}>
+                                使用此方案
+                              </Button>
+                            </Space>
+                          </Space>
+                        </Card>
+                      ))}
+                    </Space>
+                  ) : (
+                    <Text type="secondary">当前脚本还没有历史智能分镜方案。</Text>
+                  ),
+                },
+              ]}
+            />
           </Space>
         </Card>
       )}
