@@ -18,7 +18,6 @@ import { ScriptBoard } from '../components/ScriptBoard';
 import type { EditingPlanDto, Ratio, ScriptDto } from '@tiktop/shared';
 
 const { Title, Text } = Typography;
-const NEW_VIDEO_DRAFT_KEY = 'tiktop:new-video-draft:v1';
 
 interface FormValues {
   title: string;
@@ -37,36 +36,36 @@ interface NewVideoDraft {
   editingPlan: EditingPlanDto | null;
 }
 
+let newVideoDraftMemory: NewVideoDraft | null = null;
+
 export function NewVideoPage() {
   const navigate = useNavigate();
   const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
-  const [step, setStep] = useState<0 | 1 | 2>(0);
-  const [script, setScript] = useState<ScriptDto | null>(null);
-  const [editingPlan, setEditingPlan] = useState<EditingPlanDto | null>(null);
+  const [step, setStep] = useState<0 | 1 | 2>(newVideoDraftMemory?.step ?? 0);
+  const [script, setScript] = useState<ScriptDto | null>(newVideoDraftMemory?.script ?? null);
+  const [editingPlan, setEditingPlan] = useState<EditingPlanDto | null>(
+    newVideoDraftMemory?.editingPlan ?? null,
+  );
 
-  useEffect(() => {
-    const raw = window.localStorage.getItem(NEW_VIDEO_DRAFT_KEY);
-    if (!raw) return;
-    try {
-      const draft = JSON.parse(raw) as NewVideoDraft;
-      form.setFieldsValue(draft.formValues);
-      setStep(draft.step ?? 0);
-      setScript(draft.script ?? null);
-      setEditingPlan(draft.editingPlan ?? null);
-    } catch {
-      window.localStorage.removeItem(NEW_VIDEO_DRAFT_KEY);
-    }
-  }, [form]);
-
-  useEffect(() => {
-    const draft: NewVideoDraft = {
+  const saveDraft = (patch?: Partial<NewVideoDraft>) => {
+    newVideoDraftMemory = {
       step,
       formValues: form.getFieldsValue(),
       script,
       editingPlan,
+      ...patch,
     };
-    window.localStorage.setItem(NEW_VIDEO_DRAFT_KEY, JSON.stringify(draft));
+  };
+
+  useEffect(() => {
+    if (!newVideoDraftMemory) return;
+    form.setFieldsValue(newVideoDraftMemory.formValues);
+  }, [form]);
+
+  useEffect(() => {
+    saveDraft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingPlan, form, script, step]);
 
   const { data: materials = [] } = useQuery({
@@ -172,6 +171,7 @@ export function NewVideoPage() {
           layout="vertical"
           initialValues={{ ratio: '9:16', sellingPoints: [] }}
           onFinish={(v) => generateMutation.mutate(v)}
+          onValuesChange={() => saveDraft()}
           disabled={step !== 0}
         >
           <Form.Item name="title" label="商品标题" rules={[{ required: true, max: 80 }]}>
@@ -203,10 +203,10 @@ export function NewVideoPage() {
                 .map((m) => ({ value: m.id, label: m.filename }))}
             />
           </Form.Item>
-          <Form.Item name="referenceAnalysisId" label="参考视频打法">
+          <Form.Item name="referenceAnalysisId" label="参考视频模板">
             <Select
               allowClear
-              placeholder="可选：选择已拆解的参考视频，让剧本复用其 Hook / 分镜 / CTA"
+              placeholder="可选：选择已拆解的参考视频模板，让剧本复用其 Hook / 分镜 / CTA"
               options={references
                 .filter((item) => item.latestAnalysis)
                 .map((item) => ({
@@ -253,7 +253,7 @@ export function NewVideoPage() {
                   setEditingPlan(null);
                   setStep(0);
                   form.resetFields();
-                  window.localStorage.removeItem(NEW_VIDEO_DRAFT_KEY);
+                  newVideoDraftMemory = null;
                 }}
               >
                 重新填写
@@ -289,7 +289,7 @@ export function NewVideoPage() {
               <Alert
                 type="success"
                 showIcon
-                message="本脚本已使用参考视频打法"
+                message="本脚本已使用参考视频模板"
                 description={
                   selectedReference?.latestAnalysis
                     ? `${selectedReference.title} / Hook: ${selectedReference.latestAnalysis.hookType} / CTA: ${selectedReference.latestAnalysis.ctaPattern}`

@@ -76,7 +76,7 @@ export function MaterialLibraryPage() {
         <Title level={3} style={{ marginBottom: 4 }}>
           素材库
         </Title>
-        <Text type="secondary">上传商品主图、参考视频；P0 阶段不做向量检索，后续 P1 接入。</Text>
+        <Text type="secondary">上传商品主图、商品视频等素材，分析后可参与智能分镜与 RAG 检索。</Text>
       </div>
 
       <Dragger {...uploadProps} disabled={uploading}>
